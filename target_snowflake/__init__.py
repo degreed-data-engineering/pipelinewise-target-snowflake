@@ -329,7 +329,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     # then flush all buckets.
     if sum(row_count.values()) > 0:
         LOGGER.info("====if sum(row_count.values()) > 0 Line is True!=======")
-        LOGGER.info("row_count.values())".format(sum(row_count.values))
+        LOGGER.info("row_count.values()".format(sum(row_count.values)))
         # flush all streams one last time, delete records if needed, reset counts and then emit current state
         flushed_state = flush_streams(records_to_load, row_count, stream_to_sync, config, state, flushed_state,
                                       archive_load_files_data)
