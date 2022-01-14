@@ -189,17 +189,22 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                         stream_archive_load_files_values['max'] = incremental_key_value
 
             flush = False
+            LOGGER.info("===========Determining whether or not to Flush==========")
             if row_count[stream] >= batch_size_rows:
+                LOGGER.info("===row_count[stream] >= batch_size_rows")
+                LOGGER.info("row_count[stream] = {} >= batch_size_rows = {}".format(row_count[stream], batch_size_rows))
                 flush = True
                 LOGGER.info("Flush triggered by batch_size_rows (%s) reached in %s",
                             batch_size_rows, stream)
             elif (batch_wait_limit_seconds and
                   datetime.utcnow() >= (flush_timestamp + timedelta(seconds=batch_wait_limit_seconds))):
+                LOGGER.info("=======Somehow got into the batch_wait_limit_seconds Block...=========")
                 flush = True
                 LOGGER.info("Flush triggered by batch_wait_limit_seconds (%s)",
                             batch_wait_limit_seconds)
 
             if flush:
+                LOGGER.info("========Flushing==========")
                 # flush all streams, delete records if needed, reset counts and then emit current state
                 if config.get('flush_all_streams'):
                     filter_streams = None
@@ -220,6 +225,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                 flush_timestamp = datetime.utcnow()
 
                 # emit last encountered state
+                LOGGER.info("Flush Finished. Emitting State.")
+                LOGGER.info("=========state = {}========".format(flushed_state))
                 emit_state(copy.deepcopy(flushed_state))
 
         elif t == 'SCHEMA':
@@ -321,11 +328,15 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     # if some bucket has records that need to be flushed but haven't reached batch size
     # then flush all buckets.
     if sum(row_count.values()) > 0:
+        LOGGER.info("====if sum(row_count.values()) > 0 Line is True!=======")
+        LOGGER.info("row_count.values())".format(sum(row_count.values)))
         # flush all streams one last time, delete records if needed, reset counts and then emit current state
         flushed_state = flush_streams(records_to_load, row_count, stream_to_sync, config, state, flushed_state,
                                       archive_load_files_data)
 
     # emit latest state
+    LOGGER.info("=====Made it to the last flushed_state=======")
+    LOGGER.info("===State = {}===".format(flushed_state))
     emit_state(copy.deepcopy(flushed_state))
 
 
@@ -351,6 +362,7 @@ def flush_streams(
     :param archive_load_files_data: dictionary of dictionaries containing archive load files data
     :return: State dict with flushed positions
     """
+    LOGGER.info("=======Calling flush_streams()=======")
     parallelism = config.get("parallelism", DEFAULT_PARALLELISM)
     max_parallelism = config.get("max_parallelism", DEFAULT_MAX_PARALLELISM)
 
@@ -391,6 +403,7 @@ def flush_streams(
 
         # Update flushed streams
         if filter_streams:
+            LOGGER.info("========Now we're in if filter_streams block=========")
             # update flushed_state position if we have state information for the stream
             if state is not None and stream in state.get('bookmarks', {}):
                 # Create bookmark key if not exists
@@ -401,12 +414,15 @@ def flush_streams(
 
         # If we flush every bucket use the latest state
         else:
+            LOGGER.info("=======Missed the if filter_streams block. In the else.")
             flushed_state = copy.deepcopy(state)
 
         if stream in archive_load_files_data:
             archive_load_files_data[stream]['min'] = None
             archive_load_files_data[stream]['max'] = None
 
+    LOGGER.info("==========ENDING flush_streams()==========")
+    LOGGER.info("flushed_state = {}".format(flushed_state))
     # Return with state message with flushed positions
     return flushed_state
 
