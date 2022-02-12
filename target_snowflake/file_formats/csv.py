@@ -61,10 +61,12 @@ def record_to_csv_line(record: dict,
     """
     flatten_record = flattening.flatten_record(record, schema, max_level=data_flattening_max_level)
 
+    # pipelinewise-target-snowflake uses json.dump() here. We're using list comprehension to
+    # handle escape sequences like '\t', '\n', '\r', etc. before they get to Snowflake
     return ','.join(
         [
-            json.dumps(flatten_record[column], ensure_ascii=False) if column in flatten_record and (
-                    flatten_record[column] == 0 or flatten_record[column]) else ''
+            str(flatten_record[column]) if column in flatten_record and (
+                flatten_record[column] == 0 or flatten_record[column]) else ''
             for column in schema
         ]
     )
