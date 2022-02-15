@@ -45,14 +45,20 @@ def create_merge_sql(table_name: str,
            f"VALUES ({p_insert_values})"
 
 
-def list_comprehension_formula(flatten_record, column):
-    thing = str(flatten_record[column]).replace("\\", "\\\\")
-    if thing is not None and column in flatten_record and (flatten_record[column] == 0 or flatten_record[column]):
-        thing = "\"" + thing.replace("\"", "\\\"") + "\""
+def prep_csv_row_string(flatten_record, column):
+    """
+    Preparing the CSV row for Snowflake. Adding formatting for quotes and '\' characters within each record
+    """
+    record = flatten_record[column]
+    # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
+    record_string = str(flatten_record[column]).replace("\\", "\\\\")
+    if record and column in flatten_record and (record == 0 or record):
+        # Wrap all records in "", replace all internal quotation marks with \" to ensure they do not terminate a string
+        record_string = "\"" + record_string.replace("\"", "\\\"") + "\""
     else:
-        thing = ''
+        record_string = ''
 
-    return thing
+    return record_string
 
 
 def record_to_csv_line(record: dict,
@@ -76,47 +82,14 @@ def record_to_csv_line(record: dict,
     # Todo: This is currently a hacky way to get the behavior we want.
     # I assume there are better ways to handle this.
 
-    # old_list = ','.join(
-    #     [
-    #         json.dumps(flatten_record[column], ensure_ascii=True) if column in flatten_record and (
-    #                 flatten_record[column] == 0 or flatten_record[column]) else ''
-    #         for column in schema
-    #     ]
-    # )
-
-    # new_list = "\"" + '\",\"'.join(
-    #     [
-
-    #         str(flatten_record[column]).replace("\"", "\\\"") if column in flatten_record and (
-    #             flatten_record[column] == 0 or flatten_record[column]) and str(flatten_record[column]) is not None else ''
-    #         for column in schema
-    #     ]
-
-    # ) +  "\""
-
-    # new_new_list = new_list.replace("\"\"", '')
-
-    new_list = ','.join(
+    csv_string = ','.join(
         [
-            list_comprehension_formula(flatten_record, column)
+            prep_csv_row_string(flatten_record, column)
             for column in schema
         ]
     )
 
-
-    # for column in schema:
-    #     print("=========Looping over all columns in schema=========")
-    #     print(column)
-    #     print(type(flatten_record[column]))
-    #     print(flatten_record[column])
-
-    # print("=========New List and Old Created==========")
-    # print("Old List = {}".format(old_list))
-    # print("\nOld List Repr = {}".format(repr(old_list)))
-    # print("\nNew List = {}".format(new_list))
-    # print("========Lists done=========")
-
-    return new_list
+    return csv_string
 
 
 def write_records_to_file(outfile,
