@@ -2,11 +2,14 @@
 import gzip
 import json
 import os
+from singer import get_logger
 
 from typing import Callable, Dict, List
 from tempfile import mkstemp
 
 from target_snowflake import flattening
+
+logger = get_logger('target_snowflake')
 
 
 def create_copy_sql(table_name: str,
@@ -111,6 +114,7 @@ def write_records_to_file(outfile,
     Returns:
         None
     """
+    logger.info("Outfile = {}".format(outfile))
 
     for record in records.values():
         csv_line = record_to_csv_line_transformer(record, schema, data_flattening_max_level)
@@ -155,6 +159,8 @@ def records_to_file(records: Dict,
             with gzip.GzipFile(filename=filename, mode='wb',fileobj=outfile) as gzipfile:
                 write_records_to_file(gzipfile, records, schema, record_to_csv_line, data_flattening_max_level)
     else:
+        logger.info("===========WRITING TO FILE=============")
+        logger.info("dest_dir = {}".format(dest_dir))
         with open(filedesc, 'wb') as outfile:
             write_records_to_file(outfile, records, schema, record_to_csv_line, data_flattening_max_level)
 
