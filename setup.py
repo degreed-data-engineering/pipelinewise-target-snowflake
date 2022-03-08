@@ -26,12 +26,7 @@ setup(name="pipelinewise-target-snowflake",
           'inflection==0.5.1',
           'joblib==1.1.0',
           'boto3==1.20.*',
-          'azure-common==1.1.27',
-          'azure-core==1.21.1',
-          'azure-nspkg==3.0.2',
-          'azure-storage-blob==0.37.1',
-          'azure-storage-common==0.37.1',
-          'azure-storage-nspkg==3.1.0',
+          'azure-storage-blob',
       ],
       extras_require={
           "test": [
