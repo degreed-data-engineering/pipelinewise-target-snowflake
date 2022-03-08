@@ -484,7 +484,7 @@ class DbSync:
                 if len(self.stream_schema_message['key_properties']) > 0:
                     merge_sql = self.file_format.formatter.create_merge_sql(table_name=self.table_name(stream, False),
                                                                             stage_name=self.get_stage_name(stream),
-                                                                            s3_key=s3_key,
+                                                                            s3_key=upload_key,
                                                                             file_format_name=
                                                                                 self.connection_config['file_format'],
                                                                             columns=columns_with_trans,
