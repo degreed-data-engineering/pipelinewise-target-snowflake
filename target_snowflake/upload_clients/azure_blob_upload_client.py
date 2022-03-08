@@ -4,15 +4,9 @@ S3 Upload Client
 import os
 import boto3
 import datetime
-
-import azure.storage.blob
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient, __version__
-
-
-from azure.storage.blob import BlobClient 
-from azure.storage.blob import BlockBlobService
-from azure.storage.blob import ContentSettings
-
+ 
+from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient 
+ 
 from snowflake.connector.encryption_util import SnowflakeEncryptionUtil
 from snowflake.connector.storage_client import SnowflakeFileEncryptionMaterial
 
