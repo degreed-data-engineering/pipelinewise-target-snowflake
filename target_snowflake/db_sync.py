@@ -451,7 +451,7 @@ class DbSync:
         table_name = self.table_name(stream, False, without_schema=True)
         return f"{self.schema_name}.%{table_name}"
 
-    def load_file(self, s3_key, count, size_bytes):
+    def load_file(self, upload_key, count, size_bytes):
         """Load a supported file type from snowflake stage into target table"""
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
@@ -495,7 +495,7 @@ class DbSync:
                 else:
                     copy_sql = self.file_format.formatter.create_copy_sql(table_name=self.table_name(stream, False),
                                                                           stage_name=self.get_stage_name(stream),
-                                                                          s3_key=s3_key,
+                                                                          upload_key=upload_key,
                                                                           file_format_name=
                                                                             self.connection_config['file_format'],
                                                                           columns=columns_with_trans)

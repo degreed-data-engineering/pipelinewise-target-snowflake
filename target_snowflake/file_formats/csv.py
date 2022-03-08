@@ -5,25 +5,26 @@ import os
 
 from typing import Callable, Dict, List
 from tempfile import mkstemp
+
 from target_snowflake import flattening
 
 
 def create_copy_sql(table_name: str,
                     stage_name: str,
-                    s3_key: str,
+                    upload_key: str,
                     file_format_name: str,
                     columns: List):
     """Generate a CSV compatible snowflake COPY INTO command"""
     p_columns = ', '.join([c['name'] for c in columns])
 
     return f"COPY INTO {table_name} ({p_columns}) " \
-           f"FROM '@{stage_name}/{s3_key}' " \
+           f"FROM '@{stage_name}/{upload_key}' " \
            f"FILE_FORMAT = (format_name='{file_format_name}')"
 
 
 def create_merge_sql(table_name: str,
                      stage_name: str,
-                     s3_key: str,
+                     upload_key: str,
                      file_format_name: str,
                      columns: List,
                      pk_merge_condition: str) -> str:
@@ -35,30 +36,13 @@ def create_merge_sql(table_name: str,
 
     return f"MERGE INTO {table_name} t USING (" \
            f"SELECT {p_source_columns} " \
-           f"FROM '@{stage_name}/{s3_key}' " \
+           f"FROM '@{stage_name}/{upload_key}' " \
            f"(FILE_FORMAT => '{file_format_name}')) s " \
            f"ON {pk_merge_condition} " \
            f"WHEN MATCHED THEN UPDATE SET {p_update} " \
            "WHEN NOT MATCHED THEN " \
            f"INSERT ({p_insert_cols}) " \
            f"VALUES ({p_insert_values})"
-
-
-def prep_csv_row_string(flatten_record, column):
-    """
-    Preparing the CSV row for Snowflake. Adding formatting for quotes and '\' characters within each record
-    """
-    record = flatten_record[column] if column in flatten_record else None
-
-    if column in flatten_record and (record == 0 or record):
-        # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
-        record_string = str(record).replace("\\", "\\\\")
-        # Wrap all records in "", replace all internal quotation marks with \" to ensure they do not terminate a string
-        record_string = "\"" + record_string.replace("\"", "\\\"") + "\""
-    else:
-        record_string = ''
-
-    return record_string
 
 
 def record_to_csv_line(record: dict,
@@ -77,19 +61,13 @@ def record_to_csv_line(record: dict,
     """
     flatten_record = flattening.flatten_record(record, schema, max_level=data_flattening_max_level)
 
-    # pipelinewise-target-snowflake uses json.dump() here. We're using list comprehension to
-    # handle escape sequences like '\t', '\n', '\r', etc. before they get to Snowflake
-    # Todo: This is currently a hacky way to get the behavior we want.
-    # I assume there are better ways to handle this.
-
-    csv_string = ','.join(
+    return ','.join(
         [
-            prep_csv_row_string(flatten_record, column)
+            json.dumps(flatten_record[column], ensure_ascii=False) if column in flatten_record and (
+                    flatten_record[column] == 0 or flatten_record[column]) else ''
             for column in schema
         ]
     )
-
-    return csv_string
 
 
 def write_records_to_file(outfile,
@@ -110,7 +88,6 @@ def write_records_to_file(outfile,
     Returns:
         None
     """
-
     for record in records.values():
         csv_line = record_to_csv_line_transformer(record, schema, data_flattening_max_level)
         outfile.write(bytes(csv_line + '\n', 'UTF-8'))
