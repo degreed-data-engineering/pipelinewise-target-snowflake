@@ -24,8 +24,8 @@ class AzureBlobUploadClient(BaseUploadClient):
         if not config:
             config = self.connection_config
  
-        az_account =  config.get('azure_storage_account')
-        az_key =  config.get('azure_storage_key') 
+        az_account = config.get('azure_storage_account')
+        az_key = config.get('azure_storage_key') 
 
         block_blob_service = BlockBlobService(
             account_name=az_account, 
