@@ -37,7 +37,7 @@ class AzureBlobUploadClient(BaseUploadClient):
     def upload_file(self, file, stream, temp_dir=None):
         """Upload file to an external snowflake stage on azure blob storage"""
         # Generating key in blob storage
-        az_account = self.connection_config.get['azure_storage_account']
+        az_account = self.connection_config['azure_storage_account']
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
         blob = f"pipelinewise_{stream}_{timestamp}_{os.path.basename(file)}"
