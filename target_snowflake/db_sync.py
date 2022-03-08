@@ -13,6 +13,9 @@ from target_snowflake.file_format import FileFormat, FileFormatTypes
 
 from target_snowflake.exceptions import TooManyRecordsException, PrimaryKeyNotFoundException
 from target_snowflake.upload_clients.s3_upload_client import S3UploadClient
+from target_snowflake.upload_clients.azure_blob_upload_client import AzureBlobUploadClient
+
+
 from target_snowflake.upload_clients.snowflake_upload_client import SnowflakeUploadClient
 
 
@@ -26,6 +29,17 @@ def validate_config(config):
         'password',
         'warehouse',
         's3_bucket',
+        'stage',
+        'file_format'
+    ]
+
+    azure_required_config_keys = [
+        'account',
+        'dbname',
+        'user',
+        'password',
+        'warehouse',
+        'azure_storage_account',
         'stage',
         'file_format'
     ]
@@ -45,7 +59,10 @@ def validate_config(config):
     if config.get('s3_bucket', None) and config.get('stage', None):
         required_config_keys = s3_required_config_keys
     # Use table stage if none s3_bucket and stage defined
-    elif not config.get('s3_bucket', None) and not config.get('stage', None):
+    elif config.get('azure_storage_account', None) and config.get('stage', None):
+        required_config_keys = azure_required_config_keys
+    # Use table stage if none s3_bucket and stage defined
+    elif not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) and not config.get('stage', None):
         required_config_keys = snowflake_required_config_keys
     else:
         errors.append("Only one of 's3_bucket' or 'stage' keys defined in config. "
@@ -280,6 +297,8 @@ class DbSync:
         # Use external stage
         if connection_config.get('s3_bucket', None):
             self.upload_client = S3UploadClient(connection_config)
+        elif connection_config.get('azure_storage_account', None):
+            self.upload_client = AzureBlobUploadClient(connection_config)
         # Use table stage
         else:
             self.upload_client = SnowflakeUploadClient(connection_config, self)
