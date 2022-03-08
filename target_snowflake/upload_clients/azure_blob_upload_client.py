@@ -1,5 +1,5 @@
 """
-S3 Upload Client
+Azure Blob Storage Upload Client
 """
 import os
 import datetime
@@ -57,12 +57,7 @@ class AzureBlobUploadClient(BaseUploadClient):
     def delete_object(self, stream: str, key: str) -> None:
         """Delete object from an external snowflake stage on Azure"""
         self.logger.info('Deleting %s from external snowflake stage on azure', key)
-        bucket = self.connection_config['azure_storage_account']
-        self.s3_client.delete_object(Bucket=bucket, Key=key)
-
-
-
-        storage = self.connection_config['azure_storage_account']
+        self.azure_client.delete_blob('target-snowflake', key)
         #self.azure_client.delete_blob(file, content_settings=file_content_settings)
 
     def copy_object(self, copy_source: str, target_bucket: str, target_key: str, target_metadata: dict) -> None:
