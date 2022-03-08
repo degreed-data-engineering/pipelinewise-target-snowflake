@@ -415,10 +415,10 @@ class DbSync:
         self.logger.info('Uploading %d rows to stage', count)
         return self.upload_client.upload_file(file, stream, temp_dir)
 
-    def delete_from_stage(self, stream, s3_key):
+    def delete_from_stage(self, stream, upload_key):
         """Delete file from snowflake stage"""
-        self.logger.info('Deleting %s from stage', format(s3_key))
-        self.upload_client.delete_object(stream, s3_key)
+        self.logger.info('Deleting %s from stage', format(upload_key))
+        self.upload_client.delete_object(stream, upload_key)
 
     def copy_to_archive(self, s3_source_key, s3_archive_key, s3_archive_metadata):
         """
@@ -484,7 +484,7 @@ class DbSync:
                 if len(self.stream_schema_message['key_properties']) > 0:
                     merge_sql = self.file_format.formatter.create_merge_sql(table_name=self.table_name(stream, False),
                                                                             stage_name=self.get_stage_name(stream),
-                                                                            s3_key=upload_key,
+                                                                            upload_key=upload_key,
                                                                             file_format_name=
                                                                                 self.connection_config['file_format'],
                                                                             columns=columns_with_trans,
