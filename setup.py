@@ -25,7 +25,7 @@ setup(name="pipelinewise-target-snowflake",
           'snowflake-connector-python[pandas]==2.7.*',
           'inflection==0.5.1',
           'joblib==1.1.0',
-          'azure-storage-blob==12.4.0',
+          'azure-storage-blob==0.37.1',
           'boto3==1.20.*',
       ],
       extras_require={

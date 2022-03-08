@@ -5,7 +5,8 @@ import os
 import boto3
 import datetime
  
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient 
+from azure.storage.blob import BlockBlobService
+from azure.storage.blob import ContentSettings
  
 from snowflake.connector.encryption_util import SnowflakeEncryptionUtil
 from snowflake.connector.storage_client import SnowflakeFileEncryptionMaterial
@@ -24,37 +25,34 @@ class AzureBlobUploadClient(BaseUploadClient):
         if not config:
             config = self.connection_config
  
-        az_connection_string = config.get('azure_connection') 
-        account_name =  config.get('azure_storage_account') 
-        account_key =  config['azure_storage_key']
-       #blob_service_client = BlobServiceClient.from_connection_string(container_name='target-snowflalke')
-        blob_service_client = BlobServiceClient.from_connection_string(container_name='target-snowflalke') #instantiate new blobservice with connection string
-        azure_client = blob_service_client.get_container_client(container='target-snowflake') #instantiate new containerclient
-      
+        az_account =  config.get('azure_storage_account')
+        az_key =  config.get('azure_storage_key') 
+
+        block_blob_service = BlockBlobService(
+            account_name=az_account, 
+            account_key=az_key)
         
-        return azure_client
+        return block_blob_service
  
 
     def upload_file(self, file, stream, temp_dir=None):
         """Upload file to an external snowflake stage on azure blob storage"""
-        # Generating key in S3 bucket
-        storage = self.connection_config['azure_storage_account']
-        #s3_acl = self.connection_config.get('s3_acl') # DELETE???
-        container_prefix = self.connection_config.get('azure_container_prefix', '')
+        # Generating key in blob storage
+        az_account = self.connection_config['azure_storage_account']
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
-        blob_key = f"{container_prefix}pipelinewise_{stream}_{timestamp}_{os.path.basename(file)}"
-        # target-snowflake/pipelinewise_UserOrganizationSettings_2022-03-05-01:13:11_filename
-        self.logger.info('Target Azure Blob Storage: %s, local file: %s, S3 key: %s', storage, file, blob_key)
+        blob = f"pipelinewise_{stream}_{timestamp}_{os.path.basename(file)}"
+        self.logger.info('Target Azure Blob Storage: %s, local file: %s, blob: %s', az_account, file, blob)
 
- 
-  
-        self.azure_client.upload_blob(name=blob_key,  data=file, blob_type='csv/text')
+        # create blob
+        self.azure_client.create_blob_from_path(
+            'target-snowflake',
+            blob,
+            file,
+            content_settings=ContentSettings(content_type='application/CSV')
+            )
 
-        #upload_file(Filename, Bucket, Key, ExtraArgs=None, Callback=None, Config=None) S3
-        #self.azure_client.upload_file(file, storage, blob_key, ExtraArgs=None)
-
-        return blob_key
+        return blob
 
     
     def delete_object(self, stream: str, key: str) -> None:
