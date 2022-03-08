@@ -22,16 +22,6 @@ from target_snowflake.upload_clients.snowflake_upload_client import SnowflakeUpl
 def validate_config(config):
     """Validate configuration"""
     errors = []
-    s3_required_config_keys = [
-        'account',
-        'dbname',
-        'user',
-        'password',
-        'warehouse',
-        's3_bucket',
-        'stage',
-        'file_format'
-    ]
 
     azure_required_config_keys = [
         'account',
@@ -43,6 +33,18 @@ def validate_config(config):
         'stage',
         'file_format'
     ]
+
+    s3_required_config_keys = [
+        'account',
+        'dbname',
+        'user',
+        'password',
+        'warehouse',
+        's3_bucket',
+        'stage',
+        'file_format'
+    ]
+
 
     snowflake_required_config_keys = [
         'account',
