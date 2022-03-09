@@ -37,7 +37,7 @@ class AzureBlobUploadClient(BaseUploadClient):
         """Upload file to an external snowflake stage on azure blob storage"""
         # Generating key in blob storage
         az_account = self.connection_config['azure_storage_account']
-        az_container = self.connection_config['azure_storage_account']
+        az_container = self.connection_config['azure_container']
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-%f")
 
