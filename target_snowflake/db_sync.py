@@ -29,7 +29,7 @@ def validate_config(config):
         'user',
         'password',
         'warehouse',
-        'azure_storage_account',
+        'azure_container',
         'stage',
         'file_format'
     ]
@@ -61,10 +61,10 @@ def validate_config(config):
     if config.get('s3_bucket', None) and config.get('stage', None):
         required_config_keys = s3_required_config_keys
     # Use table stage if none s3_bucket and stage defined
-    elif config.get('azure_storage_account', None) and config.get('stage', None):
+    elif config.get('azure_container', None) and config.get('stage', None):
         required_config_keys = azure_required_config_keys
     # Use table stage if none s3_bucket and stage defined
-    elif not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) and not config.get('stage', None):
+    elif not config.get('s3_bucket', None) and not config.get('azure_container', None) and not config.get('stage', None):
         required_config_keys = snowflake_required_config_keys
     else:
         errors.append("Only one of 's3_bucket' or 'stage' keys defined in config. "
@@ -84,8 +84,8 @@ def validate_config(config):
 
     # Check if archive load files option is using external stages
     archive_load_files = config.get('archive_load_files', False)
-    if archive_load_files and not config.get('s3_bucket', None):
-        errors.append('Archive load files option can be used only with external s3 stages. Please define s3_bucket.')
+    if archive_load_files and not config.get('s3_bucket', None) and not config.get('azure_container', None) :
+        errors.append('Archive load files option can be used only with external s3 or Azure stages. Please define s3_bucket or azure container.')
 
     return errors
 
@@ -299,8 +299,9 @@ class DbSync:
         # Use external stage
         if connection_config.get('s3_bucket', None):
             self.upload_client = S3UploadClient(connection_config)
-        elif connection_config.get('azure_storage_account', None):
-            self.logger.info(connection_config)
+            self.staging = 's3'
+        elif connection_config.get('azure_container', None):
+            self.staging = 'azure'
             self.upload_client = AzureBlobUploadClient(connection_config)
         # Use table stage
         else:
@@ -415,35 +416,53 @@ class DbSync:
         self.logger.info('Deleting %s from stage', format(upload_key))
         self.upload_client.delete_object(stream, upload_key)
 
-    def copy_to_archive(self, s3_source_key, s3_archive_key, s3_archive_metadata):
+    def copy_to_archive(self, upload_source_key, archive_key, archive_metadata):
         """
         Copy file from snowflake stage to archive.
 
-        s3_source_key: The s3 key to copy, assumed to exist in the bucket configured as 's3_bucket'
+        upload_source_key: The s3 key to copy, assumed to exist in the bucket configured as 's3_bucket'
 
-        s3_archive_key: The key to use in archive destination. This will be prefixed with the config value
+        archive_key: The key to use in archive destination. This will be prefixed with the config value
                         'archive_load_files_s3_prefix'. If none is specified, 'archive' will be used as the prefix.
 
                         As destination bucket, the config value 'archive_load_files_s3_bucket' will be used. If none is
                         specified, the bucket configured as 's3_bucket' will be used.
 
-        s3_archive_metadata: This dict will be merged with any metadata in the source file.
+        archive_metadata: This dict will be merged with any metadata in the source file.
 
         """
-        source_bucket = self.connection_config.get('s3_bucket')
-
-        # Get archive s3_bucket from config, or use same bucket if not specified
-        archive_bucket = self.connection_config.get('archive_load_files_s3_bucket', source_bucket)
-
         # Determine prefix to use in archive s3 bucket
-        default_archive_prefix = 'archive'
-        archive_prefix = self.connection_config.get('archive_load_files_s3_prefix', default_archive_prefix)
-        prefixed_archive_key = f'{archive_prefix}/{s3_archive_key}'
+        default_archive_prefix = 'archive_dir'
 
-        copy_source = f'{source_bucket}/{s3_source_key}'
+        if self.staging == 'azure':
+            self.logger.info('**PR** LINE438 azure')
+            source_container = self.connection_config.get('azure_container')
+            archive_container = self.connection_config.get('archive_load_files_azure_container', source_container)
+            archive_prefix = self.connection_config.get('archive_load_files_azure_container_prefix', default_archive_prefix)
 
-        self.logger.info('Copying %s to archive location %s', copy_source, prefixed_archive_key)
-        self.upload_client.copy_object(copy_source, archive_bucket, prefixed_archive_key, s3_archive_metadata)
+            prefixed_archive_container = f'{archive_container}/{archive_prefix}'
+
+            copy_source = f'{source_container}/{upload_source_key}'
+            self.logger.info('**PR** line 446. Azure COPY_SOURCE:')
+            self.logger.info(copy_source)
+            self.logger.info('Copying %s to archive location %s', copy_source, prefixed_archive_container)
+            self.upload_client.copy_object(copy_source, archive_container, prefixed_archive_container, archive_metadata)
+
+        elif self.staging == 's3':
+            self.logger.info('**PR** LINE451 S3')
+            source_bucket = self.connection_config.get('s3_bucket')
+            # Get archive s3_bucket container from config, or use same bucket if not specified
+            archive_bucket = self.connection_config.get('archive_load_files_s3_bucket', source_bucket)
+            archive_prefix = self.connection_config.get('archive_load_files_s3_prefix', default_archive_prefix)
+        
+            prefixed_archive_key = f'{archive_prefix}/{archive_key}'
+
+            copy_source = f'{source_bucket}/{upload_source_key}'
+
+            self.logger.info('**PR** line 462. S3  COPY_SOURCE:')
+            self.logger.info(copy_source)
+            self.logger.info('Copying %s to archive location %s', copy_source, prefixed_archive_key)
+            self.upload_client.copy_object(copy_source, archive_bucket, prefixed_archive_key, archive_metadata)
 
     def get_stage_name(self, stream):
         """Generate snowflake stage name"""

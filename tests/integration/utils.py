@@ -33,9 +33,10 @@ def get_db_config():
     # Azure blob storage
     config['azure_storage_account'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_ACCOUNT')
     config['azure_storage_key'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_KEY') 
-    config['azure_storage_url'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_URL')
-    config['azure_container_prefix'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER')
-    config['azure_connection'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONNECTION_STRING')
+    config['azure_storage_url'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_URL') # delete?
+    config['azure_container'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER')
+    config['archive_load_files_azure_container'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER_ARCHIVE')
+    config['archive_load_files_azure_container_prefix'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER_ARCHIVE_PREFIX') 
 
     # External stage in snowflake with client side encryption details
     config['client_side_encryption_master_key'] = os.environ.get('CLIENT_SIDE_ENCRYPTION_MASTER_KEY')
