@@ -32,7 +32,6 @@ class AzureBlobUploadClient(BaseUploadClient):
             account_key=az_key)
         
         return block_blob_service
- 
 
     def upload_file(self, file, stream, temp_dir=None):
         """Upload file to an external snowflake stage on azure blob storage"""
@@ -55,7 +54,6 @@ class AzureBlobUploadClient(BaseUploadClient):
 
         return blob
 
-    
     def delete_object(self, stream: str, key: str) -> None:
         """Delete object from an external snowflake stage on Azure"""
         self.logger.info('Deleting %s from external snowflake stage on azure', key)
@@ -69,12 +67,9 @@ class AzureBlobUploadClient(BaseUploadClient):
         source_container, source_key = copy_source.split("/", 1)
         az_account = self.connection_config['azure_storage_account']
         
-        #TODO: confirm metadata is being captured.  
-        # Might need to add:
-        #   self.azure_client.get_blob_metadata(container_name=,blob_name=) 
-        #   blob_service.set_blob_metadata(container_name="test",
-        #                          blob_name="library_test.csv",
-        #                          metadata={"New_test": "again_testing", "try": "this"})
+        #TODO: - Update to capture metadata.  get_blob_metadata/set_blob_metadata
+        #      - If archive container/prefix do not exist, create container/dir before copying
+
         self.azure_client.copy_blob(container_name=prefixed_archive_container ,blob_name=source_key,copy_source='https://{}.blob.core.windows.net/{}'.format(az_account, copy_source))
         
         
