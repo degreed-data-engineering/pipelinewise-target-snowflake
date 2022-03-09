@@ -59,15 +59,12 @@ def validate_config(config):
 
     # Use external stages if both s3_bucket and stage defined
     if config.get('s3_bucket', None) and config.get('stage', None):
-        print('**PR** LINE 62')
         required_config_keys = s3_required_config_keys
     # Use table stage if none s3_bucket and stage defined
     elif config.get('azure_storage_account', None) and config.get('stage', None):
-        print('**PR** LINE 66')
         required_config_keys = azure_required_config_keys
     # Use table stage if none s3_bucket and stage defined
     elif not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) and not config.get('stage', None):
-        print('**PR** LINE 70')
         required_config_keys = snowflake_required_config_keys
     else:
         errors.append("Only one of 's3_bucket' or 'stage' keys defined in config. "
@@ -303,12 +300,10 @@ class DbSync:
         if connection_config.get('s3_bucket', None):
             self.upload_client = S3UploadClient(connection_config)
         elif connection_config.get('azure_storage_account', None):
-            self.logger.info('**PR** LINE 306 azure')
             self.logger.info(connection_config)
             self.upload_client = AzureBlobUploadClient(connection_config)
         # Use table stage
         else:
-            self.logger.info('**PR** LINE 310 Not s3 or azure')
             self.upload_client = SnowflakeUploadClient(connection_config, self)
 
     def open_connection(self):
