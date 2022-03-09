@@ -33,7 +33,7 @@ def get_db_config():
     # Azure blob storage
     config['azure_storage_account'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_ACCOUNT')
     config['azure_storage_key'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_KEY') 
-    config['azure_storage_url'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_URL') # delete?
+    config['azure_container'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER')
 
 
     # External stage in snowflake with client side encryption details
