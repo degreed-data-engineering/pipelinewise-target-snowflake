@@ -420,7 +420,7 @@ class DbSync:
         """
         Copy file from snowflake stage to archive.
 
-        upload_source_key: The s3 key to copy, assumed to exist in the bucket configured as 's3_bucket'
+        upload_source_key: The s3/azure key to copy, assumed to exist in the bucket configured as 's3_bucket' or 'azure_container'
 
         archive_key: The key to use in archive destination. This will be prefixed with the config value
                         'archive_load_files_s3_prefix'. If none is specified, 'archive' will be used as the prefix.
@@ -432,24 +432,21 @@ class DbSync:
 
         """
         # Determine prefix to use in archive s3 bucket
-        default_archive_prefix = 'archive_dir'
+        default_archive_prefix = 'archive'
 
         if self.staging == 'azure':
-            self.logger.info('**PR** LINE438 azure')
             source_container = self.connection_config.get('azure_container')
+            # Get archive container from config, or use same container if not specified if not specified
             archive_container = self.connection_config.get('archive_load_files_azure_container', source_container)
             archive_prefix = self.connection_config.get('archive_load_files_azure_container_prefix', default_archive_prefix)
 
             prefixed_archive_container = f'{archive_container}/{archive_prefix}'
 
             copy_source = f'{source_container}/{upload_source_key}'
-            self.logger.info('**PR** line 446. Azure COPY_SOURCE:')
-            self.logger.info(copy_source)
             self.logger.info('Copying %s to archive location %s', copy_source, prefixed_archive_container)
             self.upload_client.copy_object(copy_source, archive_container, prefixed_archive_container, archive_metadata)
 
         elif self.staging == 's3':
-            self.logger.info('**PR** LINE451 S3')
             source_bucket = self.connection_config.get('s3_bucket')
             # Get archive s3_bucket container from config, or use same bucket if not specified
             archive_bucket = self.connection_config.get('archive_load_files_s3_bucket', source_bucket)
