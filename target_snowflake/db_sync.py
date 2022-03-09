@@ -29,7 +29,7 @@ def validate_config(config):
         'user',
         'password',
         'warehouse',
-        'azure_container',
+        'azure_storage_account',
         'stage',
         'file_format'
     ]
@@ -61,10 +61,10 @@ def validate_config(config):
     if config.get('s3_bucket', None) and config.get('stage', None):
         required_config_keys = s3_required_config_keys
     # Use table stage if none s3_bucket and stage defined
-    elif config.get('azure_container', None) and config.get('stage', None):
+    elif config.get('azure_storage_account', None) and config.get('stage', None):
         required_config_keys = azure_required_config_keys
     # Use table stage if none s3_bucket and stage defined
-    elif not config.get('s3_bucket', None) and not config.get('azure_container', None) and not config.get('stage', None):
+    elif not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) and not config.get('stage', None):
         required_config_keys = snowflake_required_config_keys
     else:
         errors.append("Only one of 's3_bucket' or 'stage' keys defined in config. "
