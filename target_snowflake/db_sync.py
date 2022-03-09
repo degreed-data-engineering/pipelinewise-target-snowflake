@@ -84,7 +84,7 @@ def validate_config(config):
 
     # Check if archive load files option is using external stages
     archive_load_files = config.get('archive_load_files', False)
-    if archive_load_files and not config.get('s3_bucket', None) and not config.get('azure_container', None) :
+    if archive_load_files and not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) :
         errors.append('Archive load files option can be used only with external s3 or Azure stages. Please define s3_bucket or azure container.')
 
     return errors
@@ -300,7 +300,7 @@ class DbSync:
         if connection_config.get('s3_bucket', None):
             self.upload_client = S3UploadClient(connection_config)
             self.staging = 's3'
-        elif connection_config.get('azure_container', None):
+        elif connection_config.get('azure_storage_account', None):
             self.staging = 'azure'
             self.upload_client = AzureBlobUploadClient(connection_config)
         # Use table stage

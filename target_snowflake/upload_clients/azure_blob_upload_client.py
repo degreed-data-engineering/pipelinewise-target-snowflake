@@ -62,10 +62,17 @@ class AzureBlobUploadClient(BaseUploadClient):
 
     def copy_object(self, copy_source: str, archive_container: str, prefixed_archive_container: str, archive_metadata: dict) -> None:
         """Copy object to another location on Azure Storage"""
-        self.logger.info('Copying %s to %s/%s', copy_source, archive_container, prefixed_archive_key)
+        self.logger.info('Copying %s to %s/%s', copy_source, archive_container, prefixed_archive_container)
     
         source_container, source_key = copy_source.split("/", 1)
         az_account = self.connection_config['azure_storage_account']
+        
+        #TODO: confirm metadata is being captured.  
+        # Might need to add:
+        #   self.azure_client.get_blob_metadata(container_name=,blob_name=) 
+        #   blob_service.set_blob_metadata(container_name="test",
+        #                          blob_name="library_test.csv",
+        #                          metadata={"New_test": "again_testing", "try": "this"})
         self.azure_client.copy_blob(container_name=prefixed_archive_container ,blob_name=source_key,copy_source='https://{}.blob.core.windows.net/{}'.format(az_account, copy_source))
         
         
