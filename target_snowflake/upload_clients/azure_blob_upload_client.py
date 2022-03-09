@@ -57,8 +57,8 @@ class AzureBlobUploadClient(BaseUploadClient):
     def delete_object(self, stream: str, key: str) -> None:
         """Delete object from an external snowflake stage on Azure"""
         self.logger.info('Deleting %s from external snowflake stage on azure', key)
-        self.azure_client.delete_blob('target-snowflake', key)
-        #self.azure_client.delete_blob(file, content_settings=file_content_settings)
+        az_container = self.connection_config['azure_container']
+        self.azure_client.delete_blob(az_container, key)
 
     def copy_object(self, copy_source: str, archive_container: str, prefixed_archive_container: str, archive_metadata: dict) -> None:
         """Copy object to another location on Azure Storage"""
