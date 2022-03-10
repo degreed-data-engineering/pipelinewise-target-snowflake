@@ -69,7 +69,8 @@ class AzureBlobUploadClient(BaseUploadClient):
         
         #TODO: - Update to capture metadata.  get_blob_metadata/set_blob_metadata
         #      - If archive container/prefix do not exist, create container/dir before copying
-
+        self.logger.info('**PR** LINE 72 METADATA:')
+        self.logger.info(archive_metadata)
         self.azure_client.copy_blob(container_name=prefixed_archive_container ,blob_name=source_key,copy_source='https://{}.blob.core.windows.net/{}'.format(az_account, copy_source), metadata=archive_metadata)
         
         
