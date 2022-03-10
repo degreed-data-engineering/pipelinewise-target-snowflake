@@ -34,6 +34,8 @@ def get_db_config():
     config['azure_storage_account'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_ACCOUNT')
     config['azure_storage_key'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_KEY') 
     config['azure_container'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER')
+    config['azure_archive'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER_ARCHIVE')
+    config['azure_prefix'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER_ARCHIVE_PREFIX')
 
 
     # External stage in snowflake with client side encryption details
