@@ -142,9 +142,13 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             LOGGER.info(line)
 
             if 'files' in o:
-                LOGGER.info("**PR** Line 143 records")
+                LOGGER.info("**PR** Line 143 records:")
                 LOGGER.info(o['files'])
+                for file in o['files']:
+                    LOGGER.info(file)
 
+
+                    
         elif t == 'RECORD':
             if 'stream' not in o:
                 raise Exception(f"Line is missing required key 'stream': {line}")
