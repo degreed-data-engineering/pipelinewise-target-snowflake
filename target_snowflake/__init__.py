@@ -133,11 +133,17 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
         t = o['type']
         if t == 'FASTSYNC':
+                 
+            # filepath = os.path.join('fastsync', filename)
             LOGGER.info("**PR**  LINE 133 USE FASTYNC")
             LOGGER.info("**PR**  o = ")
             LOGGER.info(o)
             LOGGER.info("**PR**  Line = ")
             LOGGER.info(line)
+
+            if 'files' in o:
+                LOGGER.info("**PR** Line 143 records")
+                LOGGER.info(o['files'])
 
         elif t == 'RECORD':
             if 'stream' not in o:
