@@ -134,7 +134,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
         t = o['type']
         if t == 'FASTSYNC':
-                 
+             
             LOGGER.info("**PR**  LINE 133 USE FASTYNC")
             LOGGER.info("**PR**  o = ")
             LOGGER.info(o)
@@ -142,15 +142,14 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             LOGGER.info(line)
 
             if 'files' in o:
+                stream = o['stream'] 
+                
                 LOGGER.info("**PR** Line 143 records:")
                 LOGGER.info(o['files'])
                 for filename in o['files']:
-                    
-
-
-
 
                     file = os.path.join('fastsync', filename)
+                    size_bytes = os.path.getsize(file)
                     LOGGER.info(file)
                      
                     with gzip.open(file, 'rb') as f:
@@ -158,7 +157,10 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                             pass
                     LOGGER.info("**PR** Line 159 counter:")
                     LOGGER.info("File {1} contain {0} lines".format(i + 1, file))
-                    #put_to_stage(file, stream, count)
+                    row_count = i + 1
+
+                    upload_key = stream_to_sync[stream].put_to_stage(file, stream, row_count)
+                    stream_to_sync[stream].load_file(upload_key, row_count, size_bytes)
 
 
 
