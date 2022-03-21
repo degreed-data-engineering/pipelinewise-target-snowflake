@@ -129,7 +129,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             raise Exception(f"Line is missing required key 'type': {line}")
 
         t = o['type']
-
+        if t == 'FASTSYNC':
+            LOGGER.info("**PR**  LINE 133 USE FASTYNC")
         if t == 'RECORD':
             if 'stream' not in o:
                 raise Exception(f"Line is missing required key 'stream': {line}")
@@ -523,6 +524,10 @@ def main():
 
     # Consume singer messages
     singer_messages = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+    
+    LOGGER.info("**PR** LINE 527 singer_messages")
+    
+    LOGGER.info("Exiting normally")
     persist_lines(config, singer_messages, table_cache, file_format_type)
 
     LOGGER.debug("Exiting normally")
