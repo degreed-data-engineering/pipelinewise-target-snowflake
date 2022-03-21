@@ -2,6 +2,7 @@
 
 import argparse
 import io
+import gzip
 import json
 import logging
 import os
@@ -144,9 +145,19 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                 LOGGER.info("**PR** Line 143 records:")
                 LOGGER.info(o['files'])
                 for filename in o['files']:
+                    
+
+
+
+
                     file = os.path.join('fastsync', filename)
                     LOGGER.info(file)
-                    
+                     
+                    with gzip.open(file, 'rb') as f:
+                        for i, l in enumerate(f):
+                            pass
+                    LOGGER.info("**PR** Line 159 counter:")
+                    LOGGER.info("File {1} contain {0} lines".format(i + 1, file))
                     #put_to_stage(file, stream, count)
 
 
