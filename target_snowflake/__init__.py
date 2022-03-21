@@ -157,12 +157,22 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                     LOGGER.info("**PR** Line 159 counter:")
                     LOGGER.info("File {1} contain {0} lines".format(i + 1, file))
                     count = i + 1
-                    
+                    stream_row_count = stream_row_count + count
+
                     upload_key = stream_to_sync[stream].put_to_stage(file, stream, count)
                     stream_to_sync[stream].load_file(upload_key, count, size_bytes)
-                    stream_row_count = stream_row_count + count
-            row_count[stream] = stream_row_count
- 
+                    
+        #     flushed_state = flush_streams(
+        #             records_to_load,
+        #             row_count,
+        #             stream_to_sync,
+        #             config,
+        #             state,
+        #             flushed_state,
+        #             archive_load_files_data,
+        #             filter_streams=filter_streams)
+        #    # row_count[stream] = stream_row_count
+        #     flushed_state = copy.deepcopy(state)
 
         elif t == 'RECORD':
             if 'stream' not in o:
