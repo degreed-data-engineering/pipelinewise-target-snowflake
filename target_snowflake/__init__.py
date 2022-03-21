@@ -117,6 +117,9 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     archive_load_files = config.get('archive_load_files', False)
     archive_load_files_data = {}
 
+
+    LOGGER.info('**PR** LINE 121 Lines')
+    LOGGER.info(lines)
     # Loop over lines from stdin
     for line in lines:
         try:
@@ -131,7 +134,12 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
         t = o['type']
         if t == 'FASTSYNC':
             LOGGER.info("**PR**  LINE 133 USE FASTYNC")
-        if t == 'RECORD':
+            LOGGER.info("**PR**  o = ")
+            LOGGER.info(o)
+            LOGGER.info("**PR**  Line = ")
+            LOGGER.info(line)
+
+        elif t == 'RECORD':
             if 'stream' not in o:
                 raise Exception(f"Line is missing required key 'stream': {line}")
             if o['stream'] not in schemas:
