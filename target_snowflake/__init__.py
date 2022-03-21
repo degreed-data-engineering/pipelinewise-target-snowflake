@@ -140,10 +140,9 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             LOGGER.info(o)
             LOGGER.info("**PR**  Line = ")
             LOGGER.info(line)
-
+            stream_row_count = 0 
             if 'files' in o:
                 stream = o['stream'] 
-                
                 LOGGER.info("**PR** Line 143 records:")
                 LOGGER.info(o['files'])
                 for filename in o['files']:
@@ -157,12 +156,13 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                             pass
                     LOGGER.info("**PR** Line 159 counter:")
                     LOGGER.info("File {1} contain {0} lines".format(i + 1, file))
-                    row_count = i + 1
-
-                    upload_key = stream_to_sync[stream].put_to_stage(file, stream, row_count)
-                    stream_to_sync[stream].load_file(upload_key, row_count, size_bytes)
-
-
+                    count = i + 1
+                    
+                    upload_key = stream_to_sync[stream].put_to_stage(file, stream, count)
+                    stream_to_sync[stream].load_file(upload_key, count, size_bytes)
+                    stream_row_count = stream_row_count + count
+            row_count[stream] = stream_row_count
+ 
 
         elif t == 'RECORD':
             if 'stream' not in o:
