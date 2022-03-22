@@ -14,8 +14,6 @@ from target_snowflake.file_format import FileFormat, FileFormatTypes
 from target_snowflake.exceptions import TooManyRecordsException, PrimaryKeyNotFoundException
 from target_snowflake.upload_clients.s3_upload_client import S3UploadClient
 from target_snowflake.upload_clients.azure_blob_upload_client import AzureBlobUploadClient
-
-
 from target_snowflake.upload_clients.snowflake_upload_client import SnowflakeUploadClient
 
 
@@ -23,7 +21,7 @@ def validate_config(config):
     """Validate configuration"""
     errors = []
 
-    azure_required_config_keys = [
+    azure_storage_required_config_keys = [
         'account',
         'dbname',
         'user',
@@ -45,7 +43,6 @@ def validate_config(config):
         'file_format'
     ]
 
-
     snowflake_required_config_keys = [
         'account',
         'dbname',
@@ -62,8 +59,8 @@ def validate_config(config):
         required_config_keys = s3_required_config_keys
     # Use table stage if none s3_bucket and stage defined
     elif config.get('azure_storage_account', None) and config.get('stage', None):
-        required_config_keys = azure_required_config_keys
-    # Use table stage if none s3_bucket and stage defined
+        required_config_keys = azure_storage_required_config_keys
+    # Use table stage if none s3_bucket/Azure Storage and stage defined
     elif not config.get('s3_bucket', None) and not config.get('azure_storage_account', None) and not config.get('stage', None):
         required_config_keys = snowflake_required_config_keys
     else:
@@ -153,7 +150,8 @@ def primary_column_names(stream_schema_message):
 def create_query_tag(query_tag_pattern: str, database: str = None, schema: str = None, table: str = None) -> str:
     """
     Generate a string to tag executed queries in Snowflake.
-    Replaces tokens `schema` and `table` with the appropriate values.
+    Replaces tokens `schema` and `table` with the appropriate 
+    .
 
     Example with tokens:
         'Loading data into {schema}.{table}'
@@ -456,8 +454,6 @@ class DbSync:
 
             copy_source = f'{source_bucket}/{upload_source_key}'
 
-            self.logger.info('**PR** line 462. S3  COPY_SOURCE:')
-            self.logger.info(copy_source)
             self.logger.info('Copying %s to archive location %s', copy_source, prefixed_archive_key)
             self.upload_client.copy_object(copy_source, archive_bucket, prefixed_archive_key, archive_metadata)
 
