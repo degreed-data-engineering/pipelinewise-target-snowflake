@@ -502,7 +502,7 @@ def flush_records(stream: str,
 
         db_sync.copy_to_archive(upload_key, archive_key, archive_metadata)
 
-    # Delete file from S3
+    # Delete file from S3/Azure Storage
     db_sync.delete_from_stage(stream, upload_key)
 
 
