@@ -44,6 +44,8 @@ class TestIntegration(unittest.TestCase):
         if self.config['default_target_schema']:
             snowflake.query("DROP SCHEMA IF EXISTS {}".format(self.config['default_target_schema']))
 
+        # TODO: Update with Azure Storage functionality
+
         # Set up S3 client
         aws_access_key_id = self.config.get('aws_access_key_id')
         aws_secret_access_key = self.config.get('aws_secret_access_key')
@@ -955,6 +957,7 @@ class TestIntegration(unittest.TestCase):
 
         self.assert_three_streams_are_into_snowflake()
 
+    # TODO: add additional test for Azure Storage test_azure_env_vars
     def test_aws_env_vars(self):
         """Test loading data with credentials defined in AWS environment variables
         than explicitly provided access keys"""
@@ -980,6 +983,8 @@ class TestIntegration(unittest.TestCase):
             del os.environ['AWS_SECRET_ACCESS_KEY']
             self.config = orig_config.copy()
 
+    # TODO: add additional test for Azure Storage test_azure_based_auth
+
     def test_profile_based_auth(self):
         """Test AWS profile based authentication rather than access keys"""
         try:
@@ -999,6 +1004,8 @@ class TestIntegration(unittest.TestCase):
         # Restore the original state to not confuse other tests
         finally:
             self.config = orig_config.copy()
+
+    # TODO: add additional test for Azure Storage test_azure_based_auth_azure_env_var
 
     def test_profile_based_auth_aws_env_var(self):
         """Test AWS profile based authentication using AWS environment variables"""
@@ -1020,6 +1027,8 @@ class TestIntegration(unittest.TestCase):
         finally:
             del os.environ['AWS_PROFILE']
             self.config = orig_config.copy()
+
+    # TODO: add additional test for Azure Storage test_azure_custom_endpoint_url
 
     def test_s3_custom_endpoint_url(self):
         """Test S3 connection with custom region and endpoint URL"""
@@ -1128,6 +1137,7 @@ class TestIntegration(unittest.TestCase):
             }
         ])
 
+    # TODO: Include Azure Storage for testing table stage
     def test_table_stage(self):
         """Test if data can be loaded via table stages"""
         tap_lines = test_utils.get_test_tap_lines('messages-with-three-streams.json')
@@ -1176,7 +1186,8 @@ class TestIntegration(unittest.TestCase):
 
         # Check if data loaded correctly and metadata columns exist
         self.assert_three_streams_are_into_snowflake()
-
+    
+    #TODO: Include Azure Storage test for archiving load files
     def test_archive_load_files(self):
         """Test if load file is copied to archive folder"""
         self.config['archive_load_files'] = True

@@ -5,25 +5,26 @@ import os
 
 from typing import Callable, Dict, List
 from tempfile import mkstemp
+
 from target_snowflake import flattening
 
 
 def create_copy_sql(table_name: str,
                     stage_name: str,
-                    s3_key: str,
+                    upload_key: str,
                     file_format_name: str,
                     columns: List):
     """Generate a CSV compatible snowflake COPY INTO command"""
     p_columns = ', '.join([c['name'] for c in columns])
 
     return f"COPY INTO {table_name} ({p_columns}) " \
-           f"FROM '@{stage_name}/{s3_key}' " \
+           f"FROM '@{stage_name}/{upload_key}' " \
            f"FILE_FORMAT = (format_name='{file_format_name}')"
 
 
 def create_merge_sql(table_name: str,
                      stage_name: str,
-                     s3_key: str,
+                     upload_key: str,
                      file_format_name: str,
                      columns: List,
                      pk_merge_condition: str) -> str:
@@ -35,7 +36,7 @@ def create_merge_sql(table_name: str,
 
     return f"MERGE INTO {table_name} t USING (" \
            f"SELECT {p_source_columns} " \
-           f"FROM '@{stage_name}/{s3_key}' " \
+           f"FROM '@{stage_name}/{upload_key}' " \
            f"(FILE_FORMAT => '{file_format_name}')) s " \
            f"ON {pk_merge_condition} " \
            f"WHEN MATCHED THEN UPDATE SET {p_update} " \
@@ -48,11 +49,10 @@ def prep_csv_row_string(flatten_record, column):
     """
     Preparing the CSV row for Snowflake. Adding formatting for quotes and '\' characters within each record
     """
-    record = flatten_record[column] if column in flatten_record else None
-
-    if column in flatten_record and (record == 0 or record):
-        # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
-        record_string = str(record).replace("\\", "\\\\")
+    record = flatten_record[column]
+    # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
+    record_string = str(flatten_record[column]).replace("\\", "\\\\")
+    if record and column in flatten_record and (record == 0 or record):
         # Wrap all records in "", replace all internal quotation marks with \" to ensure they do not terminate a string
         record_string = "\"" + record_string.replace("\"", "\\\"") + "\""
     else:
@@ -66,12 +66,10 @@ def record_to_csv_line(record: dict,
                        data_flattening_max_level: int = 0) -> str:
     """
     Transforms a record message to a CSV line
-
     Args:
         record: Dictionary that represents a csv line. Dict key is column name, value is the column value
         schema: JSONSchema of the record
         data_flattening_max_level: Max level of auto flattening if a record message has nested objects. (Default: 0)
-
     Returns:
         string of csv line
     """
@@ -110,7 +108,6 @@ def write_records_to_file(outfile,
     Returns:
         None
     """
-
     for record in records.values():
         csv_line = record_to_csv_line_transformer(record, schema, data_flattening_max_level)
         outfile.write(bytes(csv_line + '\n', 'UTF-8'))

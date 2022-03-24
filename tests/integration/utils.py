@@ -11,7 +11,7 @@ def get_db_config():
     # Default configuration settings for integration tests.
     # --------------------------------------------------------------------------
     # The following values needs to be defined in environment variables with
-    # valid details to a Snowflake instace, AWS IAM role and an S3 bucket
+    # valid details to a Snowflake instace, AWS IAM role, Azure Blob Storage, and an S3 bucket
     # --------------------------------------------------------------------------
     # Snowflake instance
     config['account'] = os.environ.get('TARGET_SNOWFLAKE_ACCOUNT')
@@ -29,6 +29,11 @@ def get_db_config():
     config['s3_bucket'] = os.environ.get('TARGET_SNOWFLAKE_S3_BUCKET')
     config['s3_key_prefix'] = os.environ.get('TARGET_SNOWFLAKE_S3_KEY_PREFIX')
     config['s3_acl'] = os.environ.get('TARGET_SNOWFLAKE_S3_ACL')
+
+    # Azure blob storage
+    config['azure_storage_account'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_ACCOUNT')
+    config['azure_storage_key'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_STORAGE_KEY') 
+    config['azure_container'] = os.environ.get('TARGET_SNOWFLAKE_AZURE_CONTAINER')
 
     # External stage in snowflake with client side encryption details
     config['client_side_encryption_master_key'] = os.environ.get('CLIENT_SIDE_ENCRYPTION_MASTER_KEY')

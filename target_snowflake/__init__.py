@@ -467,8 +467,8 @@ def flush_records(stream: str,
     size_bytes = os.path.getsize(filepath)
 
     # Upload to s3 and load into Snowflake
-    s3_key = db_sync.put_to_stage(filepath, stream, row_count, temp_dir=temp_dir)
-    db_sync.load_file(s3_key, row_count, size_bytes)
+    upload_key = db_sync.put_to_stage(filepath, stream, row_count, temp_dir=temp_dir)
+    db_sync.load_file(upload_key, row_count, size_bytes)
 
     # Delete file from local disk
     os.remove(filepath)
@@ -497,13 +497,13 @@ def flush_records(stream: str,
             })
 
         # Use same file name as in import
-        archive_file = os.path.basename(s3_key)
+        archive_file = os.path.basename(upload_key)
         archive_key = f"{archive_tap}/{archive_table}/{archive_file}"
 
-        db_sync.copy_to_archive(s3_key, archive_key, archive_metadata)
+        db_sync.copy_to_archive(upload_key, archive_key, archive_metadata)
 
-    # Delete file from S3
-    db_sync.delete_from_stage(stream, s3_key)
+    # Delete file from S3/Azure Storage
+    db_sync.delete_from_stage(stream, upload_key)
 
 
 def main():
