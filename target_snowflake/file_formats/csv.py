@@ -49,10 +49,11 @@ def prep_csv_row_string(flatten_record, column):
     """
     Preparing the CSV row for Snowflake. Adding formatting for quotes and '\' characters within each record
     """
-    record = flatten_record[column]
-    # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
-    record_string = str(flatten_record[column]).replace("\\", "\\\\")
-    if record and column in flatten_record and (record == 0 or record):
+    record = flatten_record[column] if column in flatten_record else None
+
+    if column in flatten_record and (record == 0 or record):
+        # Replace all \ characters with \\ so they will be recognized as characters and not escape sequences
+        record_string = str(record).replace("\\", "\\\\")
         # Wrap all records in "", replace all internal quotation marks with \" to ensure they do not terminate a string
         record_string = "\"" + record_string.replace("\"", "\\\"") + "\""
     else:
