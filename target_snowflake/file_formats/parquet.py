@@ -10,7 +10,7 @@ from target_snowflake import flattening
 
 def create_copy_sql(table_name: str,
                     stage_name: str,
-                    s3_key: str,
+                    upload_key: str,
                     file_format_name: str,
                     columns: List):
     """Generate a Parquet compatible snowflake COPY INTO command"""
@@ -19,13 +19,13 @@ def create_copy_sql(table_name: str,
                                   for i, c in enumerate(columns)])
 
     return f"COPY INTO {table_name} ({p_target_columns}) " \
-           f"FROM (SELECT {p_source_columns} FROM '@{stage_name}/{s3_key}') " \
+           f"FROM (SELECT {p_source_columns} FROM '@{stage_name}/{upload_key}') " \
            f"FILE_FORMAT = (format_name='{file_format_name}')"
 
 
 def create_merge_sql(table_name: str,
                      stage_name: str,
-                     s3_key: str,
+                     upload_key: str,
                      file_format_name: str,
                      columns: List,
                      pk_merge_condition: str) -> str:
@@ -38,7 +38,7 @@ def create_merge_sql(table_name: str,
 
     return f"MERGE INTO {table_name} t USING (" \
            f"SELECT {p_source_columns} " \
-           f"FROM '@{stage_name}/{s3_key}' " \
+           f"FROM '@{stage_name}/{upload_key}' " \
            f"(FILE_FORMAT => '{file_format_name}')) s " \
            f"ON {pk_merge_condition} " \
            f"WHEN MATCHED THEN UPDATE SET {p_update} " \
