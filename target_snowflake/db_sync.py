@@ -470,9 +470,6 @@ class DbSync:
         """Load a supported file type from snowflake stage into target table"""
         stream_schema_message = self.stream_schema_message
         stream = stream_schema_message['stream']
-
-        self.logger = get_logger('**PR** LINE 478 Upload_key')
-        self.logger = get_logger(upload_key)
       
         self.logger.info("Loading %d rows into '%s'", count, self.table_name(stream, False))
 

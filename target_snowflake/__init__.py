@@ -118,9 +118,6 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     archive_load_files = config.get('archive_load_files', False)
     archive_load_files_data = {}
 
-
-    LOGGER.info('**PR** LINE 121 Lines')
-    LOGGER.info(lines)
     # Loop over lines from stdin
     for line in lines:
         try:
