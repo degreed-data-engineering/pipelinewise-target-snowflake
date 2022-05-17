@@ -131,46 +131,25 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
         t = o['type']
         if t == 'FASTSYNC':
-             
-            LOGGER.info("**PR**  LINE 133 USE FASTYNC")
-            LOGGER.info("**PR**  o = ")
-            LOGGER.info(o)
-            LOGGER.info("**PR**  Line = ")
-            LOGGER.info(line)
+            
             stream_row_count = 0 
             if 'files' in o:
                 stream = o['stream'] 
-                LOGGER.info("**PR** Line 143 records:")
-                LOGGER.info(o['files'])
-                for filename in o['files']:
 
+                for filename in o['files']:
                     file = os.path.join('fastsync', filename)
                     size_bytes = os.path.getsize(file)
-                    LOGGER.info(file)
                      
                     with gzip.open(file, 'rb') as f:
                         for i, l in enumerate(f):
                             pass
-                    LOGGER.info("**PR** Line 159 counter:")
-                    LOGGER.info("File {1} contain {0} lines".format(i + 1, file))
+
                     count = i + 1
                     stream_row_count = stream_row_count + count
 
                     upload_key = stream_to_sync[stream].put_to_stage(file, stream, count)
                     
                     stream_to_sync[stream].load_file(upload_key, count, size_bytes)
-                    
-        #     flushed_state = flush_streams(
-        #             records_to_load,
-        #             row_count,
-        #             stream_to_sync,
-        #             config,
-        #             state,
-        #             flushed_state,
-        #             archive_load_files_data,
-        #             filter_streams=filter_streams)
-        #    # row_count[stream] = stream_row_count
-        #     flushed_state = copy.deepcopy(state)
 
         elif t == 'RECORD':
             if 'stream' not in o:
