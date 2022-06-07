@@ -132,7 +132,6 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
         t = o['type']
     
         if t == 'FASTSYNC':
-            stream_row_count = 0 
             if 'files' in o:
                 stream = o['stream'] 
 
@@ -145,11 +144,10 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                             pass
 
                     count = i + 1
-                    stream_row_count = stream_row_count + count
 
-                    upload_key = stream_to_sync[stream].put_to_stage(file, stream, stream_row_count)
+                    upload_key = stream_to_sync[stream].put_to_stage(file, stream, count)
                     
-                    stream_to_sync[stream].load_file(upload_key, stream_row_count, size_bytes)
+                    stream_to_sync[stream].load_file(upload_key, count, size_bytes)
                     
         elif t == 'RECORD':
             if 'stream' not in o:
