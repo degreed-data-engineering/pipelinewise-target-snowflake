@@ -149,6 +149,9 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                     
                     stream_to_sync[stream].load_file(upload_key, count, size_bytes)
                     
+                    # delete gzip batch of rows
+                    os.remove(file)
+                    
         elif t == 'RECORD':
             if 'stream' not in o:
                 raise Exception(f"Line is missing required key 'stream': {line}")
