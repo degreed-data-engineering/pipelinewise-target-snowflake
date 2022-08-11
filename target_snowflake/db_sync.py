@@ -149,8 +149,7 @@ def primary_column_names(stream_schema_message):
 def create_query_tag(query_tag_pattern: str, database: str = None, schema: str = None, table: str = None) -> str:
     """
     Generate a string to tag executed queries in Snowflake.
-    Replaces tokens `schema` and `table` with the appropriate 
-    .
+    Replaces tokens `schema` and `table` with the appropriate values.
 
     Example with tokens:
         'Loading data into {schema}.{table}'
