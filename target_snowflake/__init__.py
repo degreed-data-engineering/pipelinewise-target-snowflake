@@ -489,6 +489,10 @@ def flush_records(stream: str,
     # Get file stats
     row_count = len(records)
     size_bytes = os.path.getsize(filepath)
+
+
+    logging.info('##PR## stream: ' + stream)
+    logging.info('##PR## int_stream_map: ' + int_stream_map)
     if int_stream_map:
         stream = int_stream_map
     # Upload to s3 and load into Snowflake
