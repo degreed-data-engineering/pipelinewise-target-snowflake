@@ -203,7 +203,11 @@ class DbSync:
                                     collecting catalog informations from Snowflake for caching
                                     purposes.
         """
+        print("##PR## connection_config")
+        print(connection_config)
         self.connection_config = connection_config
+        print("##PR## self.connection_config")
+        print(self.connection_config)
         self.stream_schema_message = stream_schema_message
         self.table_cache = table_cache
 
