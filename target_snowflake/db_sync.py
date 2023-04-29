@@ -213,10 +213,10 @@ class DbSync:
         # Validate connection configuration
         config_errors = validate_config(connection_config)
 
-        print("##PR## connection_config")
-        print(connection_config)
-        print("##PR## self.connection_config")
-        print(self.connection_config)
+        self.logger.info("##PR## connection_config")
+        self.logger.info(connection_config)
+        self.logger.info("##PR## self.connection_config")
+        self.logger.info(self.connection_config)
         # Exit if config has errors
         if len(config_errors) > 0:
             self.logger.error('Invalid configuration:\n   * %s', '\n   * '.join(config_errors))
