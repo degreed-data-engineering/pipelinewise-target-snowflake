@@ -203,11 +203,7 @@ class DbSync:
                                     collecting catalog informations from Snowflake for caching
                                     purposes.
         """
-        print("##PR## connection_config")
-        print(connection_config)
         self.connection_config = connection_config
-        print("##PR## self.connection_config")
-        print(self.connection_config)
         self.stream_schema_message = stream_schema_message
         self.table_cache = table_cache
 
@@ -217,6 +213,10 @@ class DbSync:
         # Validate connection configuration
         config_errors = validate_config(connection_config)
 
+        print("##PR## connection_config")
+        print(connection_config)
+        print("##PR## self.connection_config")
+        print(self.connection_config)
         # Exit if config has errors
         if len(config_errors) > 0:
             self.logger.error('Invalid configuration:\n   * %s', '\n   * '.join(config_errors))
