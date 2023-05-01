@@ -37,7 +37,7 @@ DEFAULT_PARALLELISM = 0  # 0 The number of threads used to flush tables
 DEFAULT_MAX_PARALLELISM = 16  # Don't use more than this number of threads by default when flushing streams in parallel
 
 
-def add_metadata_columns_to_schema(schema_message):
+def add_metadata_columns_to_schema(schema_message, int_stream_maps):
     """Metadata _sdc columns according to the stitch documentation at
     https://www.stitchdata.com/docs/data-structure/integration-schemas#sdc-columns
 
@@ -49,6 +49,10 @@ def add_metadata_columns_to_schema(schema_message):
     extended_schema_message['schema']['properties']['_sdc_batched_at'] = {'type': ['null', 'string'],
                                                                           'format': 'date-time'}
     extended_schema_message['schema']['properties']['_sdc_deleted_at'] = {'type': ['null', 'string']}
+    if int_stream_maps:
+        extended_schema_message['schema']['properties']['_int_organization'] = {'type': ['null', 'string']}
+        extended_schema_message['schema']['properties']['_int_path'] = {'type': ['null', 'string']}
+
 
     return extended_schema_message
 
@@ -117,6 +121,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     flush_timestamp = datetime.utcnow()
     archive_load_files = config.get('archive_load_files', False)
     archive_load_files_data = {}
+    # Integrations
+    int_stream_maps = config.get('integrations_alias', None)
 
     # Loop over lines from stdin
     for line in lines:
@@ -191,7 +197,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
             # append record
             if config.get('add_metadata_columns') or config.get('hard_delete'):
-                records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o)
+                records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o, int_stream_maps)
             else:
                 records_to_load[stream][primary_key_string] = o['record']
 
