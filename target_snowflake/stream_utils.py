@@ -1,5 +1,6 @@
 """Schema and singer message funtionalities"""
 from typing import Dict, List
+import os 
 
 from datetime import datetime
 from dateutil import parser
@@ -83,7 +84,7 @@ def float_to_decimal(value):
     return value
 
 
-def add_metadata_values_to_record(record_message, int_stream_maps):
+def add_metadata_values_to_record(record_message):
     """Populate metadata _sdc columns from incoming record message
     The location of the required attributes are fixed in the stream
     """
@@ -92,14 +93,7 @@ def add_metadata_values_to_record(record_message, int_stream_maps):
     extended_record['_sdc_batched_at'] = datetime.now().isoformat()
     extended_record['_sdc_deleted_at'] = record_message.get('record', {}).get('_sdc_deleted_at')
     
-    # Integrations
-    if int_stream_maps:
-        extended_record['_int_provider_id'] = record_message.get('key_properties')
-        extended_record['_int_organization'] = "org_test"
-        extended_record['_int_path'] = "path_test"
-
     return extended_record
-
 
 
 def add_integrations_values_to_record(record_message, int_stream_maps, primary_key_string):
@@ -110,7 +104,10 @@ def add_integrations_values_to_record(record_message, int_stream_maps, primary_k
     extended_record = record_message['record']
     if int_stream_maps:
         extended_record['_int_provider_id'] = primary_key_string
-
+        extended_record['_int_unique_key'] = str(primary_key_string) + '-' + os.environ.get("INTEGRATIONS_TAP_PROVIDER_ORGANIZATION")
+        extended_record['_int_organization'] = os.environ.get("INTEGRATIONS_TAP_PROVIDER_ORGANIZATION")
+        extended_record['_int_path'] = os.environ.get("INTEGRATIONS_TAP_PROVIDER_PATH") + '/' + os.environ.get("INTEGRATIONS_TAP_PROVIDER_NAME")
+    
     return extended_record
 
 

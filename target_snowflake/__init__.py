@@ -51,9 +51,9 @@ def add_metadata_columns_to_schema(schema_message, int_stream_maps):
     extended_schema_message['schema']['properties']['_sdc_deleted_at'] = {'type': ['null', 'string']}
     if int_stream_maps:
         extended_schema_message['schema']['properties']['_int_provider_id'] = {'type': ['null', 'string']}
+        extended_schema_message['schema']['properties']['_int_unique_key'] = {'type': ['null', 'string']}
         extended_schema_message['schema']['properties']['_int_organization'] = {'type': ['null', 'string']}
         extended_schema_message['schema']['properties']['_int_path'] = {'type': ['null', 'string']}
-
 
     return extended_schema_message
 
@@ -200,7 +200,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
             # append record
             if config.get('add_metadata_columns') or config.get('hard_delete'):
-                records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o, int_stream_maps)
+                records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o)
+                # Integrations
                 if int_stream_maps:
                     records_to_load[stream][primary_key_string] = stream_utils.add_integrations_values_to_record(o, int_stream_maps, primary_key_string)
 
