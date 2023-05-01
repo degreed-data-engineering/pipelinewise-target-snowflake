@@ -50,6 +50,7 @@ def add_metadata_columns_to_schema(schema_message, int_stream_maps):
                                                                           'format': 'date-time'}
     extended_schema_message['schema']['properties']['_sdc_deleted_at'] = {'type': ['null', 'string']}
     if int_stream_maps:
+        extended_schema_message['schema']['properties']['_int_provider_id'] = {'type': ['null', 'string']}
         extended_schema_message['schema']['properties']['_int_organization'] = {'type': ['null', 'string']}
         extended_schema_message['schema']['properties']['_int_path'] = {'type': ['null', 'string']}
 

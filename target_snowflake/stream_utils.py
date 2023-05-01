@@ -94,6 +94,7 @@ def add_metadata_values_to_record(record_message, int_stream_maps):
     
     # Integrations
     if int_stream_maps:
+        extended_record['_int_provider_id'] = record_message.get('key_properties')
         extended_record['_int_organization'] = "org_test"
         extended_record['_int_path'] = "path_test"
 
