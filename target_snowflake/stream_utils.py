@@ -97,10 +97,9 @@ def add_metadata_values_to_record(record_message):
 
 
 def add_integrations_values_to_record(record_message, int_stream_maps, primary_key_string):
-    """Populate metadata _sdc columns from incoming record message
-    The location of the required attributes are fixed in the stream
+    """Populate metadata _int columns from incoming record message
+    These fields are strictly Integrations that are required for snapshotting
     """
-    # Integrations
     extended_record = record_message['record']
     if int_stream_maps:
         extended_record['_int_provider_id'] = primary_key_string
