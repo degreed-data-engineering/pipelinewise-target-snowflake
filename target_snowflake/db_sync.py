@@ -205,6 +205,7 @@ class DbSync:
         """
         self.connection_config = connection_config
         self.stream_schema_message = stream_schema_message
+
         self.table_cache = table_cache
 
         # logger to be used across the class's methods
@@ -213,10 +214,6 @@ class DbSync:
         # Validate connection configuration
         config_errors = validate_config(connection_config)
 
-        self.logger.info("##PR## connection_config")
-        self.logger.info(connection_config)
-        self.logger.info("##PR## self.connection_config")
-        self.logger.info(self.connection_config)
         # Exit if config has errors
         if len(config_errors) > 0:
             self.logger.error('Invalid configuration:\n   * %s', '\n   * '.join(config_errors))
@@ -310,9 +307,7 @@ class DbSync:
     def open_connection(self):
         """Open snowflake connection"""
         stream = None
-        self.logger.info('##PR## self.stream_schema_message:')
-        self.logger.info(self.stream_schema_message)
-        
+
         if self.stream_schema_message:
             stream = self.stream_schema_message['stream']
 
@@ -406,8 +401,6 @@ class DbSync:
         try:
             key_props = [str(flatten[p]) for p in self.stream_schema_message['key_properties']]
 
-            self.logger.info('##PR## key_props:')
-            self.logger.info(key_props)
         except Exception as exc:
             pks = self.stream_schema_message['key_properties']
             fields = list(flatten.keys())
