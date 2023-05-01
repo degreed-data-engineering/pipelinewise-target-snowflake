@@ -410,7 +410,7 @@ def flush_streams(
             no_compression=config.get('no_compression'),
             delete_rows=config.get('hard_delete'),
             temp_dir=config.get('temp_dir'),
-            int_stream_map=config.get('int_stream_map'),
+            int_stream_map=config.get('integrations_alias'),
             archive_load_files=copy.copy(archive_load_files_data.get(stream, None))
         ) for stream in streams_to_flush)
 
@@ -492,7 +492,7 @@ def flush_records(stream: str,
 
 
     logging.info('##PR## stream: ' + stream)
-    logging.info('##PR## int_stream_map: ' + int_stream_map)
+    logging.info('##PR## integrations_alias: ' + int_stream_map)
     if int_stream_map:
         stream = int_stream_map
     # Upload to s3 and load into Snowflake

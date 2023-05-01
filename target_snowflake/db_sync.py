@@ -379,10 +379,13 @@ class DbSync:
         """Generate target table name"""
         if not stream_name:
             return None
-
         stream_dict = stream_utils.stream_name_to_dict(stream_name)
+
         table_name = stream_dict['table_name']
         sf_table_name = table_name.replace('.', '_').replace('-', '_').lower()
+
+        if self.connection_config['integrations_alias']:
+            sf_table_name = self.connection_config['integrations_alias']
 
         if is_temporary:
             sf_table_name = f'{sf_table_name}_temp'
