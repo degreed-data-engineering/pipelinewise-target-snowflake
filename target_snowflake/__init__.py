@@ -305,7 +305,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
                 if config.get('add_metadata_columns') or config.get('hard_delete'):
                     stream_to_sync[stream] = DbSync(config,
-                                                    add_metadata_columns_to_schema(o),
+                                                    add_metadata_columns_to_schema(o, int_stream_maps),
                                                     table_cache,
                                                     file_format_type)
                 else:
