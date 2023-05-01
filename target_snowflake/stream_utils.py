@@ -92,13 +92,6 @@ def add_metadata_values_to_record(record_message, int_stream_maps):
     extended_record['_sdc_batched_at'] = datetime.now().isoformat()
     extended_record['_sdc_deleted_at'] = record_message.get('record', {}).get('_sdc_deleted_at')
     
-    LOGGER.info('##PR## record_message:')
-    LOGGER.info(record_message)
-    
-    
-    LOGGER.info('##PR## extended_record:')
-    LOGGER.info(extended_record)
-    
     # Integrations
     if int_stream_maps:
         extended_record['_int_organization'] = "org_test"
