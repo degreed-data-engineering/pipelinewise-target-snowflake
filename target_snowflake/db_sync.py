@@ -307,7 +307,6 @@ class DbSync:
     def open_connection(self):
         """Open snowflake connection"""
         stream = None
-
         if self.stream_schema_message:
             stream = self.stream_schema_message['stream']
 
@@ -378,7 +377,6 @@ class DbSync:
         if not stream_name:
             return None
         stream_dict = stream_utils.stream_name_to_dict(stream_name)
-
         table_name = stream_dict['table_name']
         sf_table_name = table_name.replace('.', '_').replace('-', '_').lower()
 
@@ -400,7 +398,6 @@ class DbSync:
         flatten = flattening.flatten_record(record, self.flatten_schema, max_level=self.data_flattening_max_level)
         try:
             key_props = [str(flatten[p]) for p in self.stream_schema_message['key_properties']]
-
         except Exception as exc:
             pks = self.stream_schema_message['key_properties']
             fields = list(flatten.keys())
