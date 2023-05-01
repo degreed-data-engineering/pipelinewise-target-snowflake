@@ -185,6 +185,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                         from ex
 
             primary_key_string = stream_to_sync[stream].record_primary_key_string(o['record'])
+            LOGGER.info('##PR## primary_key_string:')
+            LOGGER.logger.info(primary_key_string)
             if not primary_key_string:
                 primary_key_string = f'RID-{total_row_count[stream]}'
 
