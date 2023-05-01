@@ -186,7 +186,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
             primary_key_string = stream_to_sync[stream].record_primary_key_string(o['record'])
             LOGGER.info('##PR## primary_key_string:')
-            LOGGER.logger.info(primary_key_string)
+            LOGGER.info(primary_key_string)
             if not primary_key_string:
                 primary_key_string = f'RID-{total_row_count[stream]}'
 
@@ -201,6 +201,9 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             # append record
             if config.get('add_metadata_columns') or config.get('hard_delete'):
                 records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o, int_stream_maps)
+                if int_stream_maps:
+                    records_to_load[stream][primary_key_string] = stream_utils.add_integrations_values_to_record(o, int_stream_maps, primary_key_string)
+
             else:
                 records_to_load[stream][primary_key_string] = o['record']
 
