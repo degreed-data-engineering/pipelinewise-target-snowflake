@@ -127,8 +127,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
     # Integrations
     # int_stream_maps = config.get('integrations_alias', None)
-    integrations = config.get('integrations_provider', [])
-    int_stream_maps = integrations[0] if integrations else None
+    integrations = config.get('integrations_provider', {})
+    int_stream_maps = integrations if integrations else None
 
     # Loop over lines from stdin
     for line in lines:
