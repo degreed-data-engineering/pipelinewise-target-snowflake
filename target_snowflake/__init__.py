@@ -124,9 +124,10 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     flush_timestamp = datetime.utcnow()
     archive_load_files = config.get('archive_load_files', False)
     archive_load_files_data = {}
+
     # Integrations
     # int_stream_maps = config.get('integrations_alias', None)
-    integrations = config.get('integrations', [])
+    integrations = config.get('integrations_provider', [])
     int_stream_maps = integrations[0] if integrations else None
 
     # Loop over lines from stdin
