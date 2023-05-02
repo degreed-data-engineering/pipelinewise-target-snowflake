@@ -103,9 +103,9 @@ def add_integrations_values_to_record(record_message, int_stream_maps, primary_k
     extended_record = record_message['record']
     if int_stream_maps:
         extended_record['_int_provider_id'] = primary_key_string
-        extended_record['_int_unique_key'] = str(primary_key_string) + '-' + os.environ.get("INTEGRATIONS_TAP_PROVIDER_ORGANIZATION", None)
-        extended_record['_int_organization'] = os.environ.get("INTEGRATIONS_TAP_PROVIDER_ORGANIZATION", None)
-        extended_record['_int_path'] = os.environ.get("INTEGRATIONS_TAP_PROVIDER_PATH", None) + '/' + os.environ.get("INTEGRATIONS_TAP_PROVIDER_NAME", None)
+        extended_record['_int_unique_key'] = str(primary_key_string) + '-' + int_stream_maps.get('organization', None)
+        extended_record['_int_organization'] =  int_stream_maps.get('organization', None) 
+        extended_record['_int_path'] = int_stream_maps.get("path", None) + '/' + int_stream_maps.get("provider", None)
     
     return extended_record
 
