@@ -380,10 +380,10 @@ class DbSync:
         table_name = stream_dict['table_name']
         sf_table_name = table_name.replace('.', '_').replace('-', '_').lower()
         
-        # Integrations - Use integrations_alias as table name
-        integrations_table_name = self.connection_config.get('integrations_alias', None)
-        if integrations_table_name:
-            sf_table_name = integrations_table_name
+        # Integrations - Use alias as table name
+        alias_table_name = self.connection_config.get('alias', None)
+        if alias_table_name:
+            sf_table_name = alias_table_name
 
         if is_temporary:
             sf_table_name = f'{sf_table_name}_temp'

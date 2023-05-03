@@ -427,7 +427,7 @@ def flush_streams(
             no_compression=config.get('no_compression'),
             delete_rows=config.get('hard_delete'),
             temp_dir=config.get('temp_dir'),
-            int_stream_map=config.get('integrations_alias'),
+            alias_name=config.get('alias'),
             archive_load_files=copy.copy(archive_load_files_data.get(stream, None))
         ) for stream in streams_to_flush)
 
@@ -458,11 +458,11 @@ def flush_streams(
 
 
 def load_stream_batch(stream, records, row_count, db_sync, no_compression=False, delete_rows=False,
-                      temp_dir=None, int_stream_map=None, archive_load_files=None):
+                      temp_dir=None, alias_name=None, archive_load_files=None):
     """Load one batch of the stream into target table"""
     # Load into snowflake
     if row_count[stream] > 0:
-        flush_records(stream, int_stream_map, records, db_sync, temp_dir, no_compression, archive_load_files)
+        flush_records(stream, alias_name, records, db_sync, temp_dir, no_compression, archive_load_files)
 
         # Delete soft-deleted, flagged rows - where _sdc_deleted at is not null
         if delete_rows:
@@ -473,7 +473,7 @@ def load_stream_batch(stream, records, row_count, db_sync, no_compression=False,
 
 
 def flush_records(stream: str,
-                  int_stream_map,
+                  alias_name,
                   records: List[Dict],
                   db_sync: DbSync,
                   temp_dir: str = None,
@@ -507,8 +507,8 @@ def flush_records(stream: str,
     row_count = len(records)
     size_bytes = os.path.getsize(filepath)
 
-    if int_stream_map:
-        stream = int_stream_map
+    if alias_name:
+        stream = alias_name
     # Upload to s3 and load into Snowflake
     upload_key = db_sync.put_to_stage(filepath, stream, row_count, temp_dir=temp_dir)
     db_sync.load_file(upload_key, row_count, size_bytes)
