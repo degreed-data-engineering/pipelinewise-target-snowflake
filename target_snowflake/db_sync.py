@@ -205,6 +205,7 @@ class DbSync:
         """
         self.connection_config = connection_config
         self.stream_schema_message = stream_schema_message
+
         self.table_cache = table_cache
 
         # logger to be used across the class's methods
@@ -375,10 +376,14 @@ class DbSync:
         """Generate target table name"""
         if not stream_name:
             return None
-
         stream_dict = stream_utils.stream_name_to_dict(stream_name)
         table_name = stream_dict['table_name']
         sf_table_name = table_name.replace('.', '_').replace('-', '_').lower()
+        
+        # Integrations - Use alias as table name
+        alias_table_name = self.connection_config.get('alias', None)
+        if alias_table_name:
+            sf_table_name = alias_table_name
 
         if is_temporary:
             sf_table_name = f'{sf_table_name}_temp'

@@ -1,5 +1,6 @@
 """Schema and singer message funtionalities"""
 from typing import Dict, List
+import os 
 
 from datetime import datetime
 from dateutil import parser
@@ -24,6 +25,7 @@ def get_schema_names_from_config(config: Dict) -> List:
     default_target_schema = config.get('default_target_schema')
     schema_mapping = config.get('schema_mapping', {})
     schema_names = []
+
 
     if default_target_schema:
         schema_names.append(default_target_schema)
@@ -90,7 +92,21 @@ def add_metadata_values_to_record(record_message):
     extended_record['_sdc_extracted_at'] = record_message.get('time_extracted')
     extended_record['_sdc_batched_at'] = datetime.now().isoformat()
     extended_record['_sdc_deleted_at'] = record_message.get('record', {}).get('_sdc_deleted_at')
+    
+    return extended_record
 
+
+def add_integrations_values_to_record(record_message, int_stream_maps, primary_key_string):
+    """Populate metadata _int columns from incoming record message
+    These fields are strictly Integrations that are required for snapshotting
+    """
+    extended_record = record_message['record']
+    if int_stream_maps:
+        extended_record['_int_provider_id'] = primary_key_string
+        extended_record['_int_unique_key'] = str(primary_key_string) + '-' + int_stream_maps.get('organization', None)
+        extended_record['_int_organization'] =  int_stream_maps.get('organization', None) 
+        extended_record['_int_path'] = int_stream_maps.get("path", None)
+    
     return extended_record
 
 

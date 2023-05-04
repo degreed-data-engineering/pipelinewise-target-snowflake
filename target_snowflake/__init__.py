@@ -37,7 +37,7 @@ DEFAULT_PARALLELISM = 0  # 0 The number of threads used to flush tables
 DEFAULT_MAX_PARALLELISM = 16  # Don't use more than this number of threads by default when flushing streams in parallel
 
 
-def add_metadata_columns_to_schema(schema_message):
+def add_metadata_columns_to_schema(schema_message, int_stream_maps):
     """Metadata _sdc columns according to the stitch documentation at
     https://www.stitchdata.com/docs/data-structure/integration-schemas#sdc-columns
 
@@ -49,6 +49,13 @@ def add_metadata_columns_to_schema(schema_message):
     extended_schema_message['schema']['properties']['_sdc_batched_at'] = {'type': ['null', 'string'],
                                                                           'format': 'date-time'}
     extended_schema_message['schema']['properties']['_sdc_deleted_at'] = {'type': ['null', 'string']}
+    
+    # Integrations fields created if the "integrations_alias" config is set
+    if int_stream_maps:
+        extended_schema_message['schema']['properties']['_int_provider_id'] = {'type': ['null', 'string']}
+        extended_schema_message['schema']['properties']['_int_unique_key'] = {'type': ['null', 'string']}
+        extended_schema_message['schema']['properties']['_int_organization'] = {'type': ['null', 'string']}
+        extended_schema_message['schema']['properties']['_int_path'] = {'type': ['null', 'string']}
 
     return extended_schema_message
 
@@ -118,6 +125,11 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     archive_load_files = config.get('archive_load_files', False)
     archive_load_files_data = {}
 
+    # Integrations
+    # int_stream_maps = config.get('integrations_alias', None)
+    integrations = config.get('integrations_provider', {})
+    int_stream_maps = integrations if integrations else None
+
     # Loop over lines from stdin
     for line in lines:
         try:
@@ -178,6 +190,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                         from ex
 
             primary_key_string = stream_to_sync[stream].record_primary_key_string(o['record'])
+      
             if not primary_key_string:
                 primary_key_string = f'RID-{total_row_count[stream]}'
 
@@ -192,6 +205,10 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
             # append record
             if config.get('add_metadata_columns') or config.get('hard_delete'):
                 records_to_load[stream][primary_key_string] = stream_utils.add_metadata_values_to_record(o)
+                # Integrations
+                if int_stream_maps:
+                    records_to_load[stream][primary_key_string] = stream_utils.add_integrations_values_to_record(o, int_stream_maps, primary_key_string)
+
             else:
                 records_to_load[stream][primary_key_string] = o['record']
 
@@ -299,7 +316,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
                 if config.get('add_metadata_columns') or config.get('hard_delete'):
                     stream_to_sync[stream] = DbSync(config,
-                                                    add_metadata_columns_to_schema(o),
+                                                    add_metadata_columns_to_schema(o, int_stream_maps),
                                                     table_cache,
                                                     file_format_type)
                 else:
@@ -410,6 +427,7 @@ def flush_streams(
             no_compression=config.get('no_compression'),
             delete_rows=config.get('hard_delete'),
             temp_dir=config.get('temp_dir'),
+            alias_name=config.get('alias'),
             archive_load_files=copy.copy(archive_load_files_data.get(stream, None))
         ) for stream in streams_to_flush)
 
@@ -440,11 +458,11 @@ def flush_streams(
 
 
 def load_stream_batch(stream, records, row_count, db_sync, no_compression=False, delete_rows=False,
-                      temp_dir=None, archive_load_files=None):
+                      temp_dir=None, alias_name=None, archive_load_files=None):
     """Load one batch of the stream into target table"""
     # Load into snowflake
     if row_count[stream] > 0:
-        flush_records(stream, records, db_sync, temp_dir, no_compression, archive_load_files)
+        flush_records(stream, alias_name, records, db_sync, temp_dir, no_compression, archive_load_files)
 
         # Delete soft-deleted, flagged rows - where _sdc_deleted at is not null
         if delete_rows:
@@ -455,6 +473,7 @@ def load_stream_batch(stream, records, row_count, db_sync, no_compression=False,
 
 
 def flush_records(stream: str,
+                  alias_name,
                   records: List[Dict],
                   db_sync: DbSync,
                   temp_dir: str = None,
@@ -488,6 +507,8 @@ def flush_records(stream: str,
     row_count = len(records)
     size_bytes = os.path.getsize(filepath)
 
+    if alias_name:
+        stream = alias_name
     # Upload to s3 and load into Snowflake
     upload_key = db_sync.put_to_stage(filepath, stream, row_count, temp_dir=temp_dir)
     db_sync.load_file(upload_key, row_count, size_bytes)
