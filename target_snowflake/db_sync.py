@@ -100,7 +100,7 @@ def column_type(schema_property):
     elif property_format == 'date':
         col_type = 'date'
     elif property_format == 'time':
-        col_type = 'time'
+        col_type = 'text'
     elif property_format == 'binary':
         col_type = 'binary'
     elif 'number' in property_type:
