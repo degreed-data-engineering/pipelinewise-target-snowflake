@@ -37,7 +37,7 @@ DEFAULT_PARALLELISM = 0  # 0 The number of threads used to flush tables
 DEFAULT_MAX_PARALLELISM = 16  # Don't use more than this number of threads by default when flushing streams in parallel
 
 
-def add_metadata_columns_to_schema(schema_message, int_stream_maps, _sdc_loaded_at_mapping):
+def add_metadata_columns_to_schema(schema_message, int_stream_maps, sdc_loaded_at_mapping):
     """Metadata _sdc columns according to the stitch documentation at
     https://www.stitchdata.com/docs/data-structure/integration-schemas#sdc-columns
 
@@ -59,7 +59,7 @@ def add_metadata_columns_to_schema(schema_message, int_stream_maps, _sdc_loaded_
     # Integrations fields created if the "integrations_alias" config is set
 
     # sdc_loaded_at field added if add_sdc_loaded_at_columns config is true 
-    if _sdc_loaded_at_mapping:
+    if sdc_loaded_at_mapping:
         extended_schema_message['schema']['properties']['_sdc_loaded_at'] = {'type': ['null', 'string'],'format': 'date-time'}
 
     return extended_schema_message
@@ -136,7 +136,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     int_stream_maps = integrations if integrations else None
 
     # Add_sdc_loaded_at_columns config for adding _sdc_loaded_at field to tables
-    _sdc_loaded_at_mapping = config.get('add_sdc_loaded_at_columns', None) or None
+    sdc_loaded_at_mapping = config.get('add_sdc_loaded_at_columns', None) or None
 
     # Loop over lines from stdin
     for line in lines:
@@ -217,8 +217,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
                 if int_stream_maps:
                     records_to_load[stream][primary_key_string] = stream_utils.add_integrations_values_to_record(o, int_stream_maps, primary_key_string)
 
-                if _sdc_loaded_at_mapping:
-                    records_to_load[stream][primary_key_string] = stream_utils.add_sdc_loaded_at_values_to_record(o, _sdc_loaded_at_mapping, primary_key_string)
+                if sdc_loaded_at_mapping:
+                    records_to_load[stream][primary_key_string] = stream_utils.add_sdc_loaded_at_values_to_record(o, sdc_loaded_at_mapping, primary_key_string)
 
             else:
                 records_to_load[stream][primary_key_string] = o['record']
@@ -327,7 +327,7 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
 
                 if config.get('add_metadata_columns') or config.get('hard_delete'):
                     stream_to_sync[stream] = DbSync(config,
-                                                    add_metadata_columns_to_schema(o, int_stream_maps,_sdc_loaded_at_mapping),
+                                                    add_metadata_columns_to_schema(o, int_stream_maps, sdc_loaded_at_mapping),
                                                     table_cache,
                                                     file_format_type)
                 else:
