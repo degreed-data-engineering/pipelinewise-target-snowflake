@@ -112,7 +112,7 @@ def add_integrations_values_to_record(record_message, int_stream_maps, primary_k
 
 def add_sdc_loaded_at_values_to_record(record_message, sdc_loaded_at_mapping, primary_key_string):
     """Populate metadata _sdc_loaded_at columns with the current utc timestamp
-    if the add_sdc_loaded_at_columns config is set to true
+    if the add_sdc_loaded_at_column config is set to true
     """
     extended_record = record_message['record']
     if sdc_loaded_at_mapping:

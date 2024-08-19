@@ -58,7 +58,7 @@ def add_metadata_columns_to_schema(schema_message, int_stream_maps, sdc_loaded_a
         extended_schema_message['schema']['properties']['_int_path'] = {'type': ['null', 'string']}
     # Integrations fields created if the "integrations_alias" config is set
 
-    # sdc_loaded_at field added if add_sdc_loaded_at_columns config is true 
+    # sdc_loaded_at field added if add_sdc_loaded_at_column config is true 
     if sdc_loaded_at_mapping:
         extended_schema_message['schema']['properties']['_sdc_loaded_at'] = {'type': ['null', 'string'],'format': 'date-time'}
 
@@ -135,8 +135,8 @@ def persist_lines(config, lines, table_cache=None, file_format_type: FileFormatT
     integrations = config.get('integrations_provider', {})
     int_stream_maps = integrations if integrations else None
 
-    # Add_sdc_loaded_at_columns config for adding _sdc_loaded_at field to tables
-    sdc_loaded_at_mapping = config.get('add_sdc_loaded_at_columns', None) or None
+    # Add_sdc_loaded_at_column config for adding _sdc_loaded_at field to tables
+    sdc_loaded_at_mapping = config.get('add_sdc_loaded_at_column', None) or None
 
     # Loop over lines from stdin
     for line in lines:
