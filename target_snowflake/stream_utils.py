@@ -19,6 +19,7 @@ MAX_TIMESTAMP = '9999-12-31 23:59:59.999999'
 # max time supported in SF, used to reset all invalid times that are beyond this value
 MAX_TIME = '23:59:59.999999'
 
+CURRENT_UTC_TIMESTAMP = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
 def get_schema_names_from_config(config: Dict) -> List:
     """Get list of target schema name from config"""
@@ -106,6 +107,16 @@ def add_integrations_values_to_record(record_message, int_stream_maps, primary_k
         extended_record['_int_unique_key'] = str(primary_key_string) + '-' + int_stream_maps.get('organization', None)
         extended_record['_int_organization'] =  int_stream_maps.get('organization', None) 
         extended_record['_int_path'] = int_stream_maps.get("path", None)
+    
+    return extended_record
+
+def add_sdc_loaded_at_values_to_record(record_message, sdc_loaded_at_mapping, primary_key_string):
+    """Populate metadata _sdc_loaded_at columns with the current utc timestamp
+    if the add_sdc_loaded_at_column config is set to true
+    """
+    extended_record = record_message['record']
+    if sdc_loaded_at_mapping:
+        extended_record['_sdc_loaded_at'] = CURRENT_UTC_TIMESTAMP
     
     return extended_record
 
