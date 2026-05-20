@@ -1,10 +1,12 @@
 import json
+import os
 import sys
 from typing import List, Dict, Union
 
 import snowflake.connector
 import re
 import time
+from cryptography.hazmat.primitives import serialization
 
 from singer import get_logger
 from target_snowflake import flattening
@@ -24,7 +26,6 @@ def validate_config(config):
         'account',
         'dbname',
         'user',
-        'password',
         'warehouse',
         'azure_storage_account',
         'stage',
@@ -35,7 +36,6 @@ def validate_config(config):
         'account',
         'dbname',
         'user',
-        'password',
         'warehouse',
         's3_bucket',
         'stage',
@@ -46,7 +46,6 @@ def validate_config(config):
         'account',
         'dbname',
         'user',
-        'password',
         'warehouse',
         'file_format'
     ]
@@ -71,6 +70,23 @@ def validate_config(config):
     for k in required_config_keys:
         if not config.get(k, None):
             errors.append(f"Required key is missing from config: [{k}]")
+
+    # Validate authentication method
+    has_password = bool(config.get('password'))
+    has_key_file = bool(config.get('private_key_file'))
+    has_key_content = bool(config.get('private_key_content'))
+
+    if has_key_file and has_key_content:
+        errors.append("Provide only one of 'private_key_file' or 'private_key_content', not both")
+
+    auth_methods = [has_password, has_key_file or has_key_content]
+    if sum(auth_methods) == 0:
+        errors.append("Must provide one of: 'password', 'private_key_file', or 'private_key_content'")
+    elif sum(auth_methods) > 1:
+        errors.append("Cannot mix password and keypair authentication. Provide only one method")
+
+    if has_key_file and not os.path.exists(config['private_key_file']):
+        errors.append(f"Private key file not found: {config['private_key_file']}")
 
     # Check target schema config
     config_default_target_schema = config.get('default_target_schema', None)
@@ -310,15 +326,14 @@ class DbSync:
         if self.stream_schema_message:
             stream = self.stream_schema_message['stream']
 
-        return snowflake.connector.connect(
-            user=self.connection_config['user'],
-            password=self.connection_config['password'],
-            account=self.connection_config['account'],
-            database=self.connection_config['dbname'],
-            warehouse=self.connection_config['warehouse'],
-            role=self.connection_config.get('role', None),
-            autocommit=True,
-            session_parameters={
+        conn_params = {
+            'user': self.connection_config['user'],
+            'account': self.connection_config['account'],
+            'database': self.connection_config['dbname'],
+            'warehouse': self.connection_config['warehouse'],
+            'role': self.connection_config.get('role', None),
+            'autocommit': True,
+            'session_parameters': {
                 # Quoted identifiers should be case sensitive
                 'QUOTED_IDENTIFIERS_IGNORE_CASE': 'FALSE',
                 'QUERY_TAG': create_query_tag(self.connection_config.get('query_tag'),
@@ -326,7 +341,64 @@ class DbSync:
                                               schema=self.schema_name,
                                               table=self.table_name(stream, False, True))
             }
-        )
+        }
+
+        key_file = self.connection_config.get('private_key_file')
+        key_content = self.connection_config.get('private_key_content')
+        passphrase = self.connection_config.get('private_key_passphrase')
+
+        if key_file or key_content:
+            conn_params['authenticator'] = 'SNOWFLAKE_JWT'
+            if key_file:
+                self._validate_private_key_file_permissions(key_file, self.logger)
+                conn_params['private_key_file'] = key_file
+                conn_params['private_key_file_pwd'] = passphrase
+            else:
+                conn_params['private_key'] = self._load_private_key_from_content(key_content, passphrase)
+        else:
+            conn_params['password'] = self.connection_config['password']
+
+        return snowflake.connector.connect(**conn_params)
+
+    def _load_private_key_from_content(self, pem_content, passphrase):
+        """Load PEM key content string, validate, and convert to DER PKCS8 bytes."""
+        try:
+            key_data = pem_content.strip().encode('utf-8')
+
+            if b'BEGIN RSA PRIVATE KEY' in key_data:
+                raise Exception(
+                    "PKCS1 format detected ('BEGIN RSA PRIVATE KEY'). "
+                    "Convert to PKCS8: openssl pkcs8 -topk8 -inform PEM -outform PEM "
+                    "-nocrypt -in key.pem -out key.p8"
+                )
+
+            password = passphrase.encode() if passphrase else None
+            private_key = serialization.load_pem_private_key(key_data, password=password)
+
+            return private_key.private_bytes(
+                encoding=serialization.Encoding.DER,
+                format=serialization.PrivateFormat.PKCS8,
+                encryption_algorithm=serialization.NoEncryption()
+            )
+        except Exception as exc:
+            if 'PKCS1 format detected' in str(exc):
+                raise
+            raise Exception(
+                f"Failed to load private key content. Ensure valid PKCS8 PEM format "
+                f"and correct passphrase. Error: {str(exc)}"
+            ) from exc
+
+    @staticmethod
+    def _validate_private_key_file_permissions(key_file_path, logger):
+        """Warn if private key file has overly permissive permissions."""
+        if os.name != 'nt':
+            file_stat = os.stat(key_file_path)
+            if file_stat.st_mode & 0o077:
+                logger.warning(
+                    "Private key file '%s' has overly permissive permissions. "
+                    "Recommended: chmod 600 or chmod 400",
+                    key_file_path
+                )
 
     def query(self, query: Union[str, List[str]], params: Dict = None, max_records=0) -> List[Dict]:
         """Run an SQL query in snowflake"""

@@ -1,3 +1,13 @@
+## [1.16.0] - 2026-05-19
+### Added
+- RSA keypair authentication support via `private_key_file` and `private_key_content` config options
+- Unified `private_key_passphrase` config option for encrypted keys
+
+### Changed
+- Upgraded `snowflake-connector-python` from `2.7.*` to `3.13.1`
+- Added `cryptography==44.0.1` dependency for key validation and DER conversion
+
+
 1.15.0 (2022-01-14)
 -------------------
 
