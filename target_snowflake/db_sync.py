@@ -72,19 +72,13 @@ def validate_config(config):
             errors.append(f"Required key is missing from config: [{k}]")
 
     # Validate authentication method.
-    # Use `is not None` (not bool) so that fields declared with an unset env var
-    # (which resolve to "") are treated as "configured" the same as fields with a
-    # real value. None means the key was never declared in the config at all.
+    # Use `is not None` so that a field declared in config with an unset env var
+    # (which resolves to "") counts as "configured". None means the key was never
+    # declared in the config at all.
     configured_password = config.get('password') is not None
     configured_key_file = config.get('private_key_file') is not None
     configured_key_content = config.get('private_key_content') is not None
     configured_passphrase = config.get('private_key_passphrase') is not None
-
-    # has_* mirrors configured_* but only true when value is non-empty (used later
-    # for keypair connection setup and file-existence checks)
-    has_password = bool(config.get('password'))
-    has_key_file = bool(config.get('private_key_file'))
-    has_key_content = bool(config.get('private_key_content'))
 
     if configured_key_file and configured_key_content:
         errors.append("Configure only one of 'private_key_file' or 'private_key_content', not both")
@@ -102,7 +96,8 @@ def validate_config(config):
                       "'private_key_content' is configured. Passphrase is only used with keypair "
                       "authentication")
 
-    if has_key_file and not os.path.exists(config['private_key_file']):
+    # Use bool() here so os.path.exists is not called with an empty string
+    if bool(config.get('private_key_file')) and not os.path.exists(config['private_key_file']):
         errors.append(f"Private key file not found: {config['private_key_file']}")
 
     # Check target schema config
