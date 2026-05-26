@@ -350,7 +350,7 @@ class TestDBSync(unittest.TestCase):
             'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
         }
         errors = validator(config)
-        self.assertTrue(any('Configure only one' in e for e in errors))
+        self.assertTrue(any('Cannot mix' in e for e in errors))
 
     def test_config_validation_rejects_both_key_sources(self):
         """Test config validation rejects file + content together"""
@@ -374,61 +374,65 @@ class TestDBSync(unittest.TestCase):
             'default_target_schema': 'dummy'
         }
         errors = validator(config)
-        self.assertTrue(any('Must configure' in e for e in errors))
-
-    def test_config_validation_rejects_all_auth_fields_as_empty_strings(self):
-        """All four auth fields declared with empty strings (unset env vars) must error"""
-        validator = db_sync.validate_config
-        config = {
-            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
-            'warehouse': 'dummy', 'file_format': 'dummy',
-            'default_target_schema': 'dummy',
-            'password': '',
-            'private_key_file': '',
-            'private_key_content': '',
-            'private_key_passphrase': '',
-        }
-        errors = validator(config)
-        self.assertTrue(any('Configure only one' in e for e in errors))
-
-    def test_config_validation_rejects_password_and_empty_key_file(self):
-        """password (real value) + private_key_file (empty string) must error"""
-        validator = db_sync.validate_config
-        config = {
-            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
-            'warehouse': 'dummy', 'file_format': 'dummy',
-            'default_target_schema': 'dummy',
-            'password': 'secret',
-            'private_key_file': '',
-        }
-        errors = validator(config)
-        self.assertTrue(any('Configure only one' in e for e in errors))
-
-    def test_config_validation_rejects_password_and_empty_key_content(self):
-        """password (real value) + private_key_content (empty string) must error"""
-        validator = db_sync.validate_config
-        config = {
-            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
-            'warehouse': 'dummy', 'file_format': 'dummy',
-            'default_target_schema': 'dummy',
-            'password': 'secret',
-            'private_key_content': '',
-        }
-        errors = validator(config)
-        self.assertTrue(any('Configure only one' in e for e in errors))
+        self.assertTrue(any('Must provide' in e for e in errors))
 
     def test_config_validation_rejects_passphrase_without_key(self):
-        """private_key_passphrase configured without any key method must error"""
+        """private_key_passphrase set without any key method must error"""
         validator = db_sync.validate_config
         config = {
             'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
             'warehouse': 'dummy', 'file_format': 'dummy',
             'default_target_schema': 'dummy',
             'password': 'secret',
-            'private_key_passphrase': 'pp',
+            'private_key_passphrase': 'passphrase',
         }
         errors = validator(config)
         self.assertTrue(any('passphrase' in e.lower() for e in errors))
+
+    def test_config_validation_rejects_password_and_key_file(self):
+        """password + private_key_file together must error"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'password': 'secret',
+            'private_key_file': '/tmp/key.pem',
+        }
+        errors = validator(config)
+        self.assertTrue(any('Cannot mix' in e for e in errors))
+
+    def test_config_validation_keypair_file_with_passphrase(self):
+        """private_key_file + passphrase is valid (encrypted key file)"""
+        import tempfile, os
+        validator = db_sync.validate_config
+        tmp = tempfile.NamedTemporaryFile(suffix='.pem', delete=False)
+        tmp.close()
+        try:
+            config = {
+                'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+                'warehouse': 'dummy', 'file_format': 'dummy',
+                'default_target_schema': 'dummy',
+                'private_key_file': tmp.name,
+                'private_key_passphrase': 'mypassphrase',
+            }
+            errors = validator(config)
+            self.assertEqual(len(errors), 0)
+        finally:
+            os.unlink(tmp.name)
+
+    def test_config_validation_keypair_content_with_passphrase(self):
+        """private_key_content + passphrase is valid (encrypted key content)"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----',
+            'private_key_passphrase': 'mypassphrase',
+        }
+        errors = validator(config)
+        self.assertEqual(len(errors), 0)
 
     @patch('target_snowflake.db_sync.DbSync.query')
     def test_open_connection_with_keypair_content(self, query_patch):

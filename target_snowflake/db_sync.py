@@ -71,33 +71,26 @@ def validate_config(config):
         if not config.get(k, None):
             errors.append(f"Required key is missing from config: [{k}]")
 
-    # Validate authentication method.
-    # Use `is not None` so that a field declared in config with an unset env var
-    # (which resolves to "") counts as "configured". None means the key was never
-    # declared in the config at all.
-    configured_password = config.get('password') is not None
-    configured_key_file = config.get('private_key_file') is not None
-    configured_key_content = config.get('private_key_content') is not None
-    configured_passphrase = config.get('private_key_passphrase') is not None
+    # Validate authentication method
+    has_password = bool(config.get('password'))
+    has_key_file = bool(config.get('private_key_file'))
+    has_key_content = bool(config.get('private_key_content'))
+    has_passphrase = bool(config.get('private_key_passphrase'))
 
-    if configured_key_file and configured_key_content:
-        errors.append("Configure only one of 'private_key_file' or 'private_key_content', not both")
+    if has_key_file and has_key_content:
+        errors.append("Provide only one of 'private_key_file' or 'private_key_content', not both")
 
-    declared_auth_methods = sum([configured_password, configured_key_file or configured_key_content])
-    if declared_auth_methods == 0:
-        errors.append("Must configure one of: 'password', 'private_key_file', or 'private_key_content'")
-    elif declared_auth_methods > 1:
-        errors.append("Configure only one authentication method: 'password', 'private_key_file', "
-                      "or 'private_key_content'. Remove the unused authentication settings from "
-                      "your configuration even if their environment variables are not exported")
+    auth_methods = [has_password, has_key_file or has_key_content]
+    if sum(auth_methods) == 0:
+        errors.append("Must provide one of: 'password', 'private_key_file', or 'private_key_content'")
+    elif sum(auth_methods) > 1:
+        errors.append("Cannot mix password and keypair authentication. Provide only one method")
 
-    if configured_passphrase and not (configured_key_file or configured_key_content):
-        errors.append("'private_key_passphrase' is configured but neither 'private_key_file' nor "
-                      "'private_key_content' is configured. Passphrase is only used with keypair "
-                      "authentication")
+    if has_passphrase and not (has_key_file or has_key_content):
+        errors.append("'private_key_passphrase' is set but neither 'private_key_file' nor "
+                      "'private_key_content' is provided. Passphrase is only used with keypair authentication")
 
-    # Use bool() here so os.path.exists is not called with an empty string
-    if bool(config.get('private_key_file')) and not os.path.exists(config['private_key_file']):
+    if has_key_file and not os.path.exists(config['private_key_file']):
         errors.append(f"Private key file not found: {config['private_key_file']}")
 
     # Check target schema config
