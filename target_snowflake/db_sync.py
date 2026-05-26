@@ -75,6 +75,7 @@ def validate_config(config):
     has_password = bool(config.get('password'))
     has_key_file = bool(config.get('private_key_file'))
     has_key_content = bool(config.get('private_key_content'))
+    has_passphrase = bool(config.get('private_key_passphrase'))
 
     if has_key_file and has_key_content:
         errors.append("Provide only one of 'private_key_file' or 'private_key_content', not both")
@@ -83,7 +84,16 @@ def validate_config(config):
     if sum(auth_methods) == 0:
         errors.append("Must provide one of: 'password', 'private_key_file', or 'private_key_content'")
     elif sum(auth_methods) > 1:
-        errors.append("Cannot mix password and keypair authentication. Provide only one method")
+        errors.append("Cannot mix password and keypair authentication. Provide only one method. "
+                      "If you are using environment variables, ensure only the variables for one "
+                      "authentication method are set (e.g. unset SNOWFLAKE_PRIVATE_KEY_FILE / "
+                      "SNOWFLAKE_PRIVATE_KEY_CONTENT when using password authentication)")
+
+    if has_passphrase and not (has_key_file or has_key_content):
+        errors.append("'private_key_passphrase' is set but neither 'private_key_file' nor "
+                      "'private_key_content' is provided. The passphrase is only used with "
+                      "keypair authentication. Unset 'private_key_passphrase' or provide a "
+                      "private key file/content")
 
     if has_key_file and not os.path.exists(config['private_key_file']):
         errors.append(f"Private key file not found: {config['private_key_file']}")
@@ -348,6 +358,8 @@ class DbSync:
         passphrase = self.connection_config.get('private_key_passphrase')
 
         if key_file or key_content:
+            self.logger.info("Connecting to Snowflake using keypair authentication (%s)",
+                             "private_key_file" if key_file else "private_key_content")
             conn_params['authenticator'] = 'SNOWFLAKE_JWT'
             if key_file:
                 self._validate_private_key_file_permissions(key_file, self.logger)
@@ -356,6 +368,7 @@ class DbSync:
             else:
                 conn_params['private_key'] = self._load_private_key_from_content(key_content, passphrase)
         else:
+            self.logger.info("Connecting to Snowflake using password authentication")
             conn_params['password'] = self.connection_config['password']
 
         return snowflake.connector.connect(**conn_params)
