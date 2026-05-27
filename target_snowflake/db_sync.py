@@ -19,7 +19,14 @@ from target_snowflake.upload_clients.azure_blob_upload_client import AzureBlobUp
 from target_snowflake.upload_clients.snowflake_upload_client import SnowflakeUploadClient
 
 def validate_config(config):
-    """Validate configuration"""
+    """Validate the connector configuration and return a list of error messages.
+
+    Checks staging setup (S3, Azure, or Snowflake table stage), required keys,
+    authentication method, schema config, and archive options.
+
+    Returns an empty list if the config is valid, or a list of error strings
+    that the caller can log and act on.
+    """
     errors = []
 
     azure_storage_required_config_keys = [
@@ -71,25 +78,38 @@ def validate_config(config):
         if not config.get(k, None):
             errors.append(f"Required key is missing from config: [{k}]")
 
-    # Validate authentication method
-    has_password = bool(config.get('password'))
-    has_key_file = bool(config.get('private_key_file'))
-    has_key_content = bool(config.get('private_key_content'))
-    has_passphrase = bool(config.get('private_key_passphrase'))
+    # ── Authentication validation ──────────────────────────────────────────────
+    # Exactly one auth method must be configured: password OR keypair — not both,
+    # not neither. See docs/auth-design-decision.md for the full reasoning.
+    #
+    # Keypair auth accepts two input forms (mutually exclusive):
+    #   private_key_file    — path to a .p8 key file on disk
+    #   private_key_content — the PEM key as an inline string (useful in CI/CD)
 
+    has_password    = bool(config.get('password'))
+    has_key_file    = bool(config.get('private_key_file'))
+    has_key_content = bool(config.get('private_key_content'))
+    has_passphrase  = bool(config.get('private_key_passphrase'))
+
+    # Convenience flag — True when any keypair input form is present
+    using_keypair = has_key_file or has_key_content
+
+    # Rule 1: only one keypair input form may be set at a time
     if has_key_file and has_key_content:
         errors.append("Provide only one of 'private_key_file' or 'private_key_content', not both")
 
-    auth_methods = [has_password, has_key_file or has_key_content]
-    if sum(auth_methods) == 0:
+    # Rule 2: exactly one top-level auth method must be present
+    if not has_password and not using_keypair:
         errors.append("Must provide one of: 'password', 'private_key_file', or 'private_key_content'")
-    elif sum(auth_methods) > 1:
+    elif has_password and using_keypair:
         errors.append("Cannot mix password and keypair authentication. Provide only one method")
 
-    if has_passphrase and not (has_key_file or has_key_content):
+    # Rule 3: a passphrase is only meaningful when a private key is also present
+    if has_passphrase and not using_keypair:
         errors.append("'private_key_passphrase' is set but neither 'private_key_file' nor "
                       "'private_key_content' is provided. Passphrase is only used with keypair authentication")
 
+    # Rule 4: if a key file path is given, it must exist on disk
     if has_key_file and not os.path.exists(config['private_key_file']):
         errors.append(f"Private key file not found: {config['private_key_file']}")
 
@@ -326,7 +346,12 @@ class DbSync:
             self.upload_client = SnowflakeUploadClient(connection_config, self)
 
     def open_connection(self):
-        """Open snowflake connection"""
+        """Open and return a Snowflake connection using the configured auth method.
+
+        The auth method (keypair or password) is resolved from connection_config.
+        validate_config() guarantees exactly one method is present before this is called,
+        so the if/else below is a branch on known state — not a runtime fallback.
+        """
         stream = None
         if self.stream_schema_message:
             stream = self.stream_schema_message['stream']
@@ -348,31 +373,55 @@ class DbSync:
             }
         }
 
-        key_file = self.connection_config.get('private_key_file')
+        key_file   = self.connection_config.get('private_key_file')
         key_content = self.connection_config.get('private_key_content')
-        passphrase = self.connection_config.get('private_key_passphrase')
+        passphrase  = self.connection_config.get('private_key_passphrase')
 
         if key_file or key_content:
+            # Keypair authentication (recommended — Snowflake deprecates password auth Aug 2026)
             self.logger.info("Connecting to Snowflake using keypair authentication (%s)",
                              "private_key_file" if key_file else "private_key_content")
             conn_params['authenticator'] = 'SNOWFLAKE_JWT'
+
             if key_file:
+                # Key supplied as a file path — pass it directly to the connector
                 self._validate_private_key_file_permissions(key_file, self.logger)
-                conn_params['private_key_file'] = key_file
+                conn_params['private_key_file']     = key_file
                 conn_params['private_key_file_pwd'] = passphrase
             else:
+                # Key supplied as inline PEM content — load and convert to DER bytes
                 conn_params['private_key'] = self._load_private_key_from_content(key_content, passphrase)
+
         else:
+            # Password authentication — validate_config confirmed this is the only method set.
+            # Note: Snowflake is deprecating password auth on August 31, 2026.
             self.logger.info("Connecting to Snowflake using password authentication")
             conn_params['password'] = self.connection_config['password']
 
         return snowflake.connector.connect(**conn_params)
 
     def _load_private_key_from_content(self, pem_content, passphrase):
-        """Load PEM key content string, validate, and convert to DER PKCS8 bytes."""
+        """Load a PEM private key from an inline string and return it as DER-encoded PKCS8 bytes.
+
+        The Snowflake Python connector expects the private_key parameter in DER/PKCS8 format,
+        so this method handles the conversion. Only PKCS8 PEM keys are accepted
+        ('BEGIN PRIVATE KEY'). PKCS1 keys ('BEGIN RSA PRIVATE KEY') are rejected with a
+        clear conversion hint.
+
+        Args:
+            pem_content: The private key as a PEM-formatted string.
+            passphrase:  Optional passphrase to decrypt the key, or None if unencrypted.
+
+        Returns:
+            DER-encoded PKCS8 bytes suitable for snowflake.connector.connect(private_key=...).
+
+        Raises:
+            Exception: If the key format is PKCS1, the passphrase is wrong, or the PEM is invalid.
+        """
         try:
             key_data = pem_content.strip().encode('utf-8')
 
+            # Snowflake requires PKCS8 format. Catch PKCS1 early and give a clear fix hint.
             if b'BEGIN RSA PRIVATE KEY' in key_data:
                 raise Exception(
                     "PKCS1 format detected ('BEGIN RSA PRIVATE KEY'). "
@@ -383,6 +432,7 @@ class DbSync:
             password = passphrase.encode() if passphrase else None
             private_key = serialization.load_pem_private_key(key_data, password=password)
 
+            # Return as unencrypted DER bytes — the connector handles it from here
             return private_key.private_bytes(
                 encoding=serialization.Encoding.DER,
                 format=serialization.PrivateFormat.PKCS8,
@@ -398,10 +448,15 @@ class DbSync:
 
     @staticmethod
     def _validate_private_key_file_permissions(key_file_path, logger):
-        """Warn if private key file has overly permissive permissions."""
+        """Warn if the private key file is readable by group or others.
+
+        Checks are skipped on Windows (os.name == 'nt') as POSIX permission
+        bits do not apply there. On Unix systems, a key file should be
+        accessible only by the owner (chmod 600 or 400).
+        """
         if os.name != 'nt':
             file_stat = os.stat(key_file_path)
-            if file_stat.st_mode & 0o077:
+            if file_stat.st_mode & 0o077:  # any group or other permission bits set
                 logger.warning(
                     "Private key file '%s' has overly permissive permissions. "
                     "Recommended: chmod 600 or chmod 400",
