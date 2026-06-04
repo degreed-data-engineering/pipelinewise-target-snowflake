@@ -312,3 +312,164 @@ class TestDBSync(unittest.TestCase):
         with self.assertRaisesRegex(PrimaryKeyNotFoundException,
                                     "Cannot find \['invalid_col'\] primary key\(s\) in record\. Available fields: \['id', 'c_str'\]"):
             dbsync.record_primary_key_string({'id': 123, 'c_str': 'xyz'})
+
+    def test_config_validation_keypair_file(self):
+        """Test config validation accepts keypair file auth"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_file': '/tmp/test_key_nonexistent.pem'
+        }
+        errors = validator(config)
+        # Only the file-not-found error should be present; no password-related error
+        self.assertTrue(any('not found' in e for e in errors))
+        self.assertFalse(any('password' in e.lower() for e in errors))
+
+    def test_config_validation_keypair_content(self):
+        """Test config validation accepts keypair content auth"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
+        }
+        errors = validator(config)
+        self.assertEqual(len(errors), 0)
+
+    def test_config_validation_rejects_mixed_auth(self):
+        """Test config validation rejects password + keypair together"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'password': 'secret',
+            'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
+        }
+        errors = validator(config)
+        self.assertTrue(any('Cannot mix' in e for e in errors))
+
+    def test_config_validation_rejects_both_key_sources(self):
+        """Test config validation rejects file + content together"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_file': '/tmp/key.pem',
+            'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----'
+        }
+        errors = validator(config)
+        self.assertTrue(any('only one' in e.lower() for e in errors))
+
+    def test_config_validation_rejects_no_auth(self):
+        """Test config validation rejects missing auth entirely"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy'
+        }
+        errors = validator(config)
+        self.assertTrue(any('Must provide' in e for e in errors))
+
+    def test_config_validation_rejects_passphrase_without_key(self):
+        """private_key_passphrase set without any key method must error"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'password': 'secret',
+            'private_key_passphrase': 'passphrase',
+        }
+        errors = validator(config)
+        self.assertTrue(any('passphrase' in e.lower() for e in errors))
+
+    def test_config_validation_rejects_password_and_key_file(self):
+        """password + private_key_file together must error"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'password': 'secret',
+            'private_key_file': '/tmp/key.pem',
+        }
+        errors = validator(config)
+        self.assertTrue(any('Cannot mix' in e for e in errors))
+
+    def test_config_validation_keypair_file_with_passphrase(self):
+        """private_key_file + passphrase is valid (encrypted key file)"""
+        import tempfile, os
+        validator = db_sync.validate_config
+        tmp = tempfile.NamedTemporaryFile(suffix='.pem', delete=False)
+        tmp.close()
+        try:
+            config = {
+                'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+                'warehouse': 'dummy', 'file_format': 'dummy',
+                'default_target_schema': 'dummy',
+                'private_key_file': tmp.name,
+                'private_key_passphrase': 'mypassphrase',
+            }
+            errors = validator(config)
+            self.assertEqual(len(errors), 0)
+        finally:
+            os.unlink(tmp.name)
+
+    def test_config_validation_keypair_content_with_passphrase(self):
+        """private_key_content + passphrase is valid (encrypted key content)"""
+        validator = db_sync.validate_config
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_content': '-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----',
+            'private_key_passphrase': 'mypassphrase',
+        }
+        errors = validator(config)
+        self.assertEqual(len(errors), 0)
+
+    @patch('target_snowflake.db_sync.DbSync.query')
+    def test_open_connection_with_keypair_content(self, query_patch):
+        """Test that _load_private_key_from_content returns valid DER bytes"""
+        query_patch.return_value = [{'type': 'CSV'}]
+        from cryptography.hazmat.primitives.asymmetric import rsa
+        from cryptography.hazmat.primitives import serialization as crypto_serialization
+
+        private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        pem = private_key.private_bytes(
+            crypto_serialization.Encoding.PEM,
+            crypto_serialization.PrivateFormat.PKCS8,
+            crypto_serialization.NoEncryption()
+        ).decode()
+
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_content': pem
+        }
+        dbsync = db_sync.DbSync(config)
+        der_bytes = dbsync._load_private_key_from_content(pem, None)
+        self.assertIsInstance(der_bytes, bytes)
+        self.assertGreater(len(der_bytes), 0)
+
+    @patch('target_snowflake.db_sync.DbSync.query')
+    def test_load_private_key_rejects_pkcs1(self, query_patch):
+        """Test that PKCS1 format keys are rejected with a helpful message"""
+        query_patch.return_value = [{'type': 'CSV'}]
+        config = {
+            'account': 'dummy', 'dbname': 'dummy', 'user': 'dummy',
+            'warehouse': 'dummy', 'file_format': 'dummy',
+            'default_target_schema': 'dummy',
+            'private_key_content': '-----BEGIN RSA PRIVATE KEY-----\nfake\n-----END RSA PRIVATE KEY-----'
+        }
+        dbsync = db_sync.DbSync(config)
+        with self.assertRaises(Exception) as ctx:
+            dbsync._load_private_key_from_content(config['private_key_content'], None)
+        self.assertIn('PKCS1', str(ctx.exception))

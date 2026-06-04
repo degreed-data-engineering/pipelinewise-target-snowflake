@@ -136,6 +136,51 @@ Running the the target connector requires a `config.json` file. Example with the
    }
    ```
 
+### Authentication Methods
+
+**Password authentication** (existing):
+```json
+{
+  "account": "rtxxxxx.eu-central-1",
+  "dbname": "database_name",
+  "user": "my_user",
+  "password": "my_password",
+  "warehouse": "my_virtual_warehouse",
+  "file_format": "snowflake_file_format_object_name",
+  "default_target_schema": "my_target_schema"
+}
+```
+
+**Keypair authentication via file path**:
+```json
+{
+  "account": "rtxxxxx.eu-central-1",
+  "dbname": "database_name",
+  "user": "my_user",
+  "private_key_file": "/path/to/rsa_key.p8",
+  "private_key_passphrase": "optional_passphrase_if_encrypted",
+  "warehouse": "my_virtual_warehouse",
+  "file_format": "snowflake_file_format_object_name",
+  "default_target_schema": "my_target_schema"
+}
+```
+
+**Keypair authentication via key content string**:
+```json
+{
+  "account": "rtxxxxx.eu-central-1",
+  "dbname": "database_name",
+  "user": "my_user",
+  "private_key_content": "-----BEGIN PRIVATE KEY-----\n<base64-encoded-key>\n-----END PRIVATE KEY-----",
+  "private_key_passphrase": "optional_passphrase_if_encrypted",
+  "warehouse": "my_virtual_warehouse",
+  "file_format": "snowflake_file_format_object_name",
+  "default_target_schema": "my_target_schema"
+}
+```
+
+Keys must be in PKCS8 PEM format. To convert a PKCS1 key: `openssl pkcs8 -topk8 -inform PEM -outform PEM -nocrypt -in key.pem -out key.p8`
+
 Full list of options in `config.json`:
 
 | Property                            | Type    | Required?  | Description                                                   |
@@ -143,7 +188,10 @@ Full list of options in `config.json`:
 | account                             | String  | Yes        | Snowflake account name (i.e. rtXXXXX.eu-central-1)            |
 | dbname                              | String  | Yes        | Snowflake Database name                                       |
 | user                                | String  | Yes        | Snowflake User                                                |
-| password                            | String  | Yes        | Snowflake Password                                            |
+| password                            | String  | Conditional | Snowflake Password. Required if not using keypair authentication. |
+| private_key_file                    | String  | No         | Path to RSA private key file (PKCS8 PEM format). Mutually exclusive with `password` and `private_key_content`. |
+| private_key_content                 | String  | No         | RSA private key as a PEM string (PKCS8 format). Mutually exclusive with `password` and `private_key_file`. |
+| private_key_passphrase              | String  | No         | Passphrase for encrypted private key (used with both `private_key_file` and `private_key_content`). |
 | warehouse                           | String  | Yes        | Snowflake virtual warehouse name                              |
 | role                                | String  | No         | Snowflake role to use. If not defined then the user's default role will be used |
 | aws_access_key_id                   | String  | No         | S3 Access Key Id. If not provided, `AWS_ACCESS_KEY_ID` environment variable or IAM role will be used |
